@@ -12,7 +12,7 @@ export interface UserAccount extends User {
 }
 
 export interface Entrepreneur {
-  id:string;
+  id: string;
   businessName: string; // ชื่อสถานประกอบการ
   establishmentType: string; // ประเภทของสถานประกอบการ
   businessCategory: string; // หมวดธุรกิจ
@@ -21,6 +21,7 @@ export interface Entrepreneur {
   contact: string;      // เบอร์โทร
   lineId: string;       // Line ID
   facebook: string;     // Facebook
+  nickname?: string;    // ชื่อเล่น (Optional)
 }
 
 export type ProjectCategory = 'Research' | 'Academic Services' | 'Student Projects' | 'Lab Services';
@@ -29,9 +30,11 @@ export interface Project {
   id: string;
   name: string;
   description: string;
-  entrepreneurId: string;
+  entrepreneur: string; // ชื่อผู้ประกอบการ (Text Input)
   status: 'Completed' | 'In Progress' | 'Planned';
   category: ProjectCategory;
+  projectLeader: string; // หัวหน้าโครงการ
+  coProjectLeader?: string; // ผู้ร่วมดำเนินการ (Optional)
   outcome?: string;
 }
 

@@ -21,10 +21,10 @@ const initialEntrepreneurs: Entrepreneur[] = [
 
 
 const initialProjects: Project[] = [
-  { id: 'proj1', name: 'พัฒนาระบบ CRM', description: 'พัฒนาและติดตั้งระบบ CRM สำหรับจัดการลูกค้า', entrepreneurId: 'ent1', status: 'Completed', category: 'Research', outcome: 'เพิ่มประสิทธิภาพการจัดการลูกค้าสัมพันธ์ได้ 30% และลดเวลาในการติดตามงาน' },
-  { id: 'proj2', name: 'ออกแบบบรรจุภัณฑ์ใหม่', description: 'ออกแบบแพคเกจจิ้งสำหรับสินค้าส่งออก', entrepreneurId: 'ent2', status: 'In Progress', category: 'Academic Services' },
-  { id: 'proj3', name: 'วิเคราะห์ข้อมูลการตลาด', description: 'วิเคราะห์ข้อมูลลูกค้าเพื่อวางแผนการตลาด', entrepreneurId: 'ent1', status: 'Completed', category: 'Student Projects', outcome: 'ค้นพบกลุ่มลูกค้าใหม่ในตลาดออนไลน์ และสร้างแคมเปญที่เพิ่มยอดขาย 15%' },
-  { id: 'proj4', name: 'ทดสอบคุณภาพผลิตภัณฑ์อาหาร', description: 'บริการทดสอบและรับรองคุณภาพอาหาร', entrepreneurId: 'ent2', status: 'Completed', category: 'Lab Services', outcome: 'ผลิตภัณฑ์ผ่านการรับรองมาตรฐาน อย. และ GMP พร้อมสำหรับวางจำหน่ายในห้างสรรพสินค้า' },
+  { id: 'proj1', name: 'พัฒนาระบบ CRM', description: 'พัฒนาและติดตั้งระบบ CRM สำหรับจัดการลูกค้า', entrepreneur: 'บริษัท เอ บี ซี จำกัด', status: 'Completed', category: 'Research', outcome: 'เพิ่มประสิทธิภาพการจัดการลูกค้าสัมพันธ์ได้ 30% และลดเวลาในการติดตามงาน', projectLeader: 'ดร.สมชาย ใจดี', coProjectLeader: 'นายวิชัย เก่งกาจ' },
+  { id: 'proj2', name: 'ออกแบบบรรจุภัณฑ์ใหม่', description: 'ออกแบบแพคเกจจิ้งสำหรับสินค้าส่งออก', entrepreneur: 'หจก. สมใจการเกษตร', status: 'In Progress', category: 'Academic Services', projectLeader: 'ผศ.ดร.มานี รักไทย' },
+  { id: 'proj3', name: 'วิเคราะห์ข้อมูลการตลาด', description: 'วิเคราะห์ข้อมูลลูกค้าเพื่อวางแผนการตลาด', entrepreneur: 'บริษัท เอ บี ซี จำกัด', status: 'Completed', category: 'Student Projects', outcome: 'ค้นพบกลุ่มลูกค้าใหม่ในตลาดออนไลน์ และสร้างแคมเปญที่เพิ่มยอดขาย 15%', projectLeader: 'ดร.พิชัย จินดา', coProjectLeader: 'นางสาวสุดา ศรีงาม' },
+  { id: 'proj4', name: 'ทดสอบคุณภาพผลิตภัณฑ์อาหาร', description: 'บริการทดสอบและรับรองคุณภาพอาหาร', entrepreneur: 'หจก. สมใจการเกษตร', status: 'Completed', category: 'Lab Services', outcome: 'ผลิตภัณฑ์ผ่านการรับรองมาตรฐาน อย. และ GMP พร้อมสำหรับวางจำหน่ายในห้างสรรพสินค้า', projectLeader: 'รศ.ดร.สุพัตรา มีลาภ' },
 ];
 
 const initialCourses: Course[] = [
@@ -38,9 +38,9 @@ const initialConsultants: Consultant[] = [
 ];
 
 const initialUsers: UserAccount[] = [
-    { id: 'user-admin-01', username: 'admin', role: 'admin', password: 'password' },
-    { id: 'user-officer-01', username: 'janjira', role: 'officer', password: 'password123' },
-    { id: 'user-basic-01', username: 'somchai', role: 'user', password: 'password123' },
+  { id: 'user-admin-01', username: 'admin', role: 'admin', password: 'password' },
+  { id: 'user-officer-01', username: 'janjira', role: 'officer', password: 'password123' },
+  { id: 'user-basic-01', username: 'somchai', role: 'user', password: 'password123' },
 ];
 
 const initialEstablishmentTypes: string[] = [
@@ -77,7 +77,7 @@ const initialProjectCategories: ProjectCategorySetting[] = [
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  
+
   const [entrepreneurs, setEntrepreneurs] = useState<Entrepreneur[]>(initialEntrepreneurs);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [courses, setCourses] = useState<Course[]>(initialCourses);
@@ -86,19 +86,19 @@ const App: React.FC = () => {
   const [establishmentTypes, setEstablishmentTypes] = useState<string[]>(initialEstablishmentTypes);
   const [businessCategories, setBusinessCategories] = useState<string[]>(initialBusinessCategories);
   const [projectCategories, setProjectCategories] = useState<ProjectCategorySetting[]>(initialProjectCategories);
-  
+
   const { showNotification } = useNotification();
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     const roleText = {
-        admin: 'ผู้ดูแลระบบ',
-        officer: 'เจ้าหน้าที่',
-        user: 'ผู้ใช้งาน'
+      admin: 'ผู้ดูแลระบบ',
+      officer: 'เจ้าหน้าที่',
+      user: 'ผู้ใช้งาน'
     };
     // Use a short delay to allow the UI to transition before showing the modal
     setTimeout(() => {
-        showNotification(`เข้าสู่ระบบสำเร็จในฐานะ ${roleText[user.role]}`, 'success');
+      showNotification(`เข้าสู่ระบบสำเร็จในฐานะ ${roleText[user.role]}`, 'success');
     }, 100);
   };
 
@@ -112,7 +112,7 @@ const App: React.FC = () => {
   if (!currentUser) {
     return <LoginPage onLogin={handleLogin} />;
   }
-  
+
   return (
     <AdminLayout
       currentUser={currentUser}
