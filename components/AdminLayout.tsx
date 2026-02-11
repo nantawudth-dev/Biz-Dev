@@ -67,6 +67,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
         };
     }, [isSidebarOpen]);
 
+    // Redirect if non-admin tries to access Settings
+    useEffect(() => {
+        if (activeView === ViewType.Settings && currentUser.role !== 'admin') {
+            setActiveView(ViewType.Dashboard);
+        }
+    }, [activeView, currentUser.role]);
+
     const renderView = () => {
         const userRole = currentUser.role;
         let viewComponent;
@@ -80,19 +87,19 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
                 />;
                 break;
             case ViewType.Entrepreneurs:
-                viewComponent = <EntrepreneurView 
-                    userRole={userRole} 
-                    entrepreneurs={entrepreneurs} 
-                    setEntrepreneurs={setEntrepreneurs} 
-                    establishmentTypes={establishmentTypes} 
-                    businessCategories={businessCategories} 
+                viewComponent = <EntrepreneurView
+                    userRole={userRole}
+                    entrepreneurs={entrepreneurs}
+                    setEntrepreneurs={setEntrepreneurs}
+                    establishmentTypes={establishmentTypes}
+                    businessCategories={businessCategories}
                 />;
                 break;
             case ViewType.Projects:
                 viewComponent = <ProjectView userRole={userRole} projects={projects} setProjects={setProjects} entrepreneurs={entrepreneurs} projectCategories={projectCategories} />;
                 break;
             case ViewType.BizProjects:
-                viewComponent = <BizProjectView projects={projects} entrepreneurs={entrepreneurs} projectCategories={projectCategories}/>;
+                viewComponent = <BizProjectView projects={projects} entrepreneurs={entrepreneurs} projectCategories={projectCategories} />;
                 break;
             case ViewType.Courses:
                 viewComponent = <CourseView userRole={userRole} courses={courses} setCourses={setCourses} />;
@@ -101,9 +108,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
                 viewComponent = <ConsultantView userRole={userRole} consultants={consultants} setConsultants={setConsultants} />;
                 break;
             case ViewType.Settings:
-                 if (userRole === 'admin') {
-                    viewComponent = <SettingsView 
-                        users={users} 
+                if (userRole === 'admin') {
+                    viewComponent = <SettingsView
+                        users={users}
                         setUsers={setUsers}
                         establishmentTypes={establishmentTypes}
                         setEstablishmentTypes={setEstablishmentTypes}
@@ -113,7 +120,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
                         setProjectCategories={setProjectCategories}
                     />;
                 } else {
-                    setActiveView(ViewType.Dashboard); 
+                    // Redirect is handled in useEffect
                     viewComponent = <DashboardView entrepreneurs={entrepreneurs} projects={projects} courses={courses} consultants={consultants} />;
                 }
                 break;
@@ -149,18 +156,18 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
                     {renderView()}
                 </div>
             </main>
-            <Modal 
-              isOpen={isLogoutModalOpen} 
-              onClose={() => setIsLogoutModalOpen(false)} 
-              title="ยืนยันการออกจากระบบ" 
-              icon={<ExclamationTriangleIcon className="w-7 h-7 text-amber-500" />}
+            <Modal
+                isOpen={isLogoutModalOpen}
+                onClose={() => setIsLogoutModalOpen(false)}
+                title="ยืนยันการออกจากระบบ"
+                icon={<ExclamationTriangleIcon className="w-7 h-7 text-amber-500" />}
             >
                 <div>
-                  <p className="text-slate-600 mb-6 text-base font-body">คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?</p>
-                  <div className="flex justify-end gap-4">
-                      <button onClick={() => setIsLogoutModalOpen(false)} className="px-5 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 font-semibold transition-colors">ยกเลิก</button>
-                      <button onClick={onLogout} className="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors">ออกจากระบบ</button>
-                  </div>
+                    <p className="text-slate-600 mb-6 text-base font-body">คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?</p>
+                    <div className="flex justify-end gap-4">
+                        <button onClick={() => setIsLogoutModalOpen(false)} className="px-5 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 font-semibold transition-colors">ยกเลิก</button>
+                        <button onClick={onLogout} className="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors">ออกจากระบบ</button>
+                    </div>
                 </div>
             </Modal>
         </div>
