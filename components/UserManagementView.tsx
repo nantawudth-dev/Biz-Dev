@@ -13,8 +13,9 @@ interface UserManagementViewProps {
 
 const emptyUserForm: Omit<UserAccount, 'id'> = {
   username: '',
-  password: '',
+  email: '',
   role: 'user',
+  isActive: true,
 };
 
 const UserManagementView: React.FC<UserManagementViewProps> = ({ users, setUsers }) => {
@@ -23,7 +24,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, setUsers
   const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserAccount | null>(null);
   const [formData, setFormData] = useState<Omit<UserAccount, 'id'> & { id?: string }>(emptyUserForm);
-  
+
   const { showNotification } = useNotification();
 
   const handleOpenAddModal = () => {
@@ -34,11 +35,10 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, setUsers
 
   const handleOpenEditModal = (user: UserAccount) => {
     setEditingUser(user);
-    // Don't pre-fill password for security, but allow setting a new one
-    setFormData({ ...user, password: '' }); 
+    setFormData({ ...user });
     setIsFormModalOpen(true);
   };
-  
+
   const handleOpenDeleteModal = (user: UserAccount) => {
     setDeletingUser(user);
     setIsDeleteModalOpen(true);
@@ -51,18 +51,14 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, setUsers
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.username) return;
+    if (!formData.username || !formData.email) return;
 
     if (editingUser) {
       // Update user
-      setUsers(users.map(u => u.id === editingUser.id ? { ...editingUser, ...formData, password: formData.password || editingUser.password } : u));
+      setUsers(users.map(u => u.id === editingUser.id ? { ...formData, id: editingUser.id } as UserAccount : u));
       showNotification('อัปเดตข้อมูลผู้ใช้สำเร็จ', 'success');
     } else {
       // Add new user
-      if (!formData.password) {
-        showNotification('กรุณากำหนดรหัสผ่านสำหรับผู้ใช้ใหม่', 'error');
-        return;
-      }
       setUsers([...users, { ...formData, id: `user${Date.now()}` } as UserAccount]);
       showNotification('เพิ่มผู้ใช้ใหม่สำเร็จ', 'success');
     }
@@ -78,7 +74,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, setUsers
   };
 
   const getRoleDisplayName = (role: Role) => {
-    switch(role) {
+    switch (role) {
       case 'admin': return 'ผู้ดูแลระบบ';
       case 'officer': return 'เจ้าหน้าที่';
       case 'user': return 'ผู้ใช้งานทั่วไป';
@@ -89,67 +85,121 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, setUsers
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-lg">
       <div className="p-5 border-b border-slate-200 flex justify-between items-center">
-          <h3 className="text-xl font-bold text-slate-800">รายชื่อผู้ใช้งาน</h3>
-          <button onClick={handleOpenAddModal} className="flex items-center bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-3 py-1.5 text-sm font-semibold rounded-md hover:opacity-90 transition-colors">
-              <PlusIcon className="w-4 h-4 mr-1.5" />
-              เพิ่มผู้ใช้
-          </button>
+        <h3 className="text-xl font-medium font-title text-slate-800">รายชื่อผู้ใช้งาน</h3>
+        <button onClick={handleOpenAddModal} className="flex items-center bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-3 py-1.5 text-sm font-semibold rounded-md hover:opacity-90 transition-colors">
+          <PlusIcon className="w-4 h-4 mr-1.5" />
+          เพิ่มผู้ใช้
+        </button>
       </div>
 
-      <div className="p-4 space-y-2">
-        {users.map((user) => (
-          <div key={user.id} className="p-2 bg-slate-50 rounded-lg flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="bg-slate-200 p-2 rounded-full">
-                <UserCircleIcon className="w-5 h-5 text-slate-600" />
-              </div>
-              <div>
-                <p className="text-slate-800 font-semibold">{user.username}</p>
-                <p className="text-xs text-slate-500 font-medium">{getRoleDisplayName(user.role)}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button onClick={() => handleOpenEditModal(user)} className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded-md" aria-label={`แก้ไข ${user.username}`}>
-                <PencilIcon className="w-4 h-4" />
-              </button>
-              <button onClick={() => handleOpenDeleteModal(user)} className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-md" aria-label={`ลบ ${user.username}`}>
-                <TrashIcon className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        ))}
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-slate-200">
+          <thead className="bg-slate-50">
+            <tr>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อผู้ใช้งาน</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">อีเมล</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">บทบาท</th>
+              <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider font-title">สถานะ</th>
+              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-slate-200">
+            {users.map((user) => (
+              <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-slate-100 p-2 rounded-full shrink-0">
+                      <UserCircleIcon className="w-5 h-5 text-slate-500" />
+                    </div>
+                    <span className="text-sm font-medium text-slate-900">{user.username}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="text-sm text-slate-600">{user.email || '-'}</span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' : user.role === 'officer' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'}`}>
+                    {getRoleDisplayName(user.role)}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-center">
+                  <button
+                    onClick={() => {
+                      setUsers(users.map(u => u.id === user.id ? { ...u, isActive: !u.isActive } : u));
+                      showNotification(`${user.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}ผู้ใช้สำเร็จ`, 'success');
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${user.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${user.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <div className="flex items-center justify-end gap-3">
+                    <button onClick={() => handleOpenEditModal(user)} className="text-slate-400 hover:text-blue-600 transition-colors" title={`แก้ไข ${user.username}`}>
+                      <PencilIcon className="w-5 h-5" />
+                    </button>
+                    <button onClick={() => handleOpenDeleteModal(user)} className="text-slate-400 hover:text-red-600 transition-colors" title={`ลบ ${user.username}`}>
+                      <TrashIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <Modal isOpen={isFormModalOpen} onClose={handleCloseModals} title={editingUser ? 'แก้ไขข้อมูลผู้ใช้' : 'เพิ่มผู้ใช้ใหม่'}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            placeholder="ชื่อผู้ใช้"
-            value={formData.username}
-            onChange={e => setFormData({ ...formData, username: e.target.value })}
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
-            required
-          />
-          <input
-            type="password"
-            placeholder={editingUser ? 'กำหนดรหัสผ่านใหม่ (ถ้าต้องการ)' : 'รหัสผ่าน'}
-            value={formData.password}
-            onChange={e => setFormData({ ...formData, password: e.target.value })}
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
-            required={!editingUser}
-          />
-          <div className="relative">
-            <select
-              value={formData.role}
-              onChange={e => setFormData({ ...formData, role: e.target.value as Role })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none font-body"
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อผู้ใช้</label>
+            <input
+              type="text"
+              placeholder="ชื่อผู้ใช้"
+              value={formData.username}
+              onChange={e => setFormData({ ...formData, username: e.target.value })}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">อีเมล</label>
+            <input
+              type="email"
+              placeholder="example@email.com"
+              value={formData.email}
+              onChange={e => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">บทบาท</label>
+            <div className="relative">
+              <select
+                value={formData.role}
+                onChange={e => setFormData({ ...formData, role: e.target.value as Role })}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none font-body"
+              >
+                <option value="user">ผู้ใช้งานทั่วไป</option>
+                <option value="officer">เจ้าหน้าที่</option>
+                <option value="admin">ผู้ดูแลระบบ</option>
+              </select>
+              <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+            <div>
+              <label className="block text-sm font-medium text-slate-700">สถานะการใช้งาน</label>
+              <p className="text-xs text-slate-500 mt-1">{formData.isActive ? 'ใช้งาน' : 'ไม่ใช้งาน'}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${formData.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}
             >
-              <option value="user">ผู้ใช้งานทั่วไป</option>
-              <option value="officer">เจ้าหน้าที่</option>
-              <option value="admin">ผู้ดูแลระบบ</option>
-            </select>
-            <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
           </div>
           <div className="flex justify-end pt-4">
             <button type="submit" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-colors">

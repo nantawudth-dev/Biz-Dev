@@ -21,10 +21,10 @@ const initialEntrepreneurs: Entrepreneur[] = [
 
 
 const initialProjects: Project[] = [
-  { id: 'proj1', name: 'พัฒนาระบบ CRM', description: 'พัฒนาและติดตั้งระบบ CRM สำหรับจัดการลูกค้า', entrepreneur: 'บริษัท เอ บี ซี จำกัด', status: 'Completed', category: 'Research', outcome: 'เพิ่มประสิทธิภาพการจัดการลูกค้าสัมพันธ์ได้ 30% และลดเวลาในการติดตามงาน', projectLeader: 'ดร.สมชาย ใจดี', coProjectLeader: 'นายวิชัย เก่งกาจ' },
-  { id: 'proj2', name: 'ออกแบบบรรจุภัณฑ์ใหม่', description: 'ออกแบบแพคเกจจิ้งสำหรับสินค้าส่งออก', entrepreneur: 'หจก. สมใจการเกษตร', status: 'In Progress', category: 'Academic Services', projectLeader: 'ผศ.ดร.มานี รักไทย' },
-  { id: 'proj3', name: 'วิเคราะห์ข้อมูลการตลาด', description: 'วิเคราะห์ข้อมูลลูกค้าเพื่อวางแผนการตลาด', entrepreneur: 'บริษัท เอ บี ซี จำกัด', status: 'Completed', category: 'Student Projects', outcome: 'ค้นพบกลุ่มลูกค้าใหม่ในตลาดออนไลน์ และสร้างแคมเปญที่เพิ่มยอดขาย 15%', projectLeader: 'ดร.พิชัย จินดา', coProjectLeader: 'นางสาวสุดา ศรีงาม' },
-  { id: 'proj4', name: 'ทดสอบคุณภาพผลิตภัณฑ์อาหาร', description: 'บริการทดสอบและรับรองคุณภาพอาหาร', entrepreneur: 'หจก. สมใจการเกษตร', status: 'Completed', category: 'Lab Services', outcome: 'ผลิตภัณฑ์ผ่านการรับรองมาตรฐาน อย. และ GMP พร้อมสำหรับวางจำหน่ายในห้างสรรพสินค้า', projectLeader: 'รศ.ดร.สุพัตรา มีลาภ' },
+  { id: 'proj1', name: 'พัฒนาระบบ CRM', description: 'พัฒนาและติดตั้งระบบ CRM สำหรับจัดการลูกค้า', entrepreneur: 'บริษัท เอ บี ซี จำกัด', status: 'Completed', category: 'Research', outcome: 'เพิ่มประสิทธิภาพการจัดการลูกค้าสัมพันธ์ได้ 30% และลดเวลาในการติดตามงาน', projectLeader: 'ดร.สมชาย ใจดี', coProjectLeader: 'นายวิชัย เก่งกาจ', budget: 50000, fiscalYear: '2567' },
+  { id: 'proj2', name: 'ออกแบบบรรจุภัณฑ์ใหม่', description: 'ออกแบบแพคเกจจิ้งสำหรับสินค้าส่งออก', entrepreneur: 'หจก. สมใจการเกษตร', status: 'In Progress', category: 'Academic Services', projectLeader: 'ผศ.ดร.มานี รักไทย', budget: 30000, fiscalYear: '2567' },
+  { id: 'proj3', name: 'วิเคราะห์ข้อมูลการตลาด', description: 'วิเคราะห์ข้อมูลลูกค้าเพื่อวางแผนการตลาด', entrepreneur: 'บริษัท เอ บี ซี จำกัด', status: 'Completed', category: 'Consulting', outcome: 'ค้นพบกลุ่มลูกค้าใหม่ในตลาดออนไลน์ และสร้างแคมเปญที่เพิ่มยอดขาย 15%', projectLeader: 'ดร.พิชัย จินดา', coProjectLeader: 'นางสาวสุดา ศรีงาม', budget: 15000, fiscalYear: '2566' },
+  { id: 'proj4', name: 'ทดสอบคุณภาพผลิตภัณฑ์อาหาร', description: 'บริการทดสอบและรับรองคุณภาพอาหาร', entrepreneur: 'หจก. สมใจการเกษตร', status: 'Completed', category: 'Biz-Lab', outcome: 'ผลิตภัณฑ์ผ่านการรับรองมาตรฐาน อย. และ GMP พร้อมสำหรับวางจำหน่ายในห้างสรรพสินค้า', projectLeader: 'รศ.ดร.สุพัตรา มีลาภ', budget: 20000, fiscalYear: '2566' },
 ];
 
 const initialCourses: Course[] = [
@@ -38,9 +38,9 @@ const initialConsultants: Consultant[] = [
 ];
 
 const initialUsers: UserAccount[] = [
-  { id: 'user-admin-01', username: 'admin', role: 'admin', password: 'password' },
-  { id: 'user-officer-01', username: 'janjira', role: 'officer', password: 'password123' },
-  { id: 'user-basic-01', username: 'somchai', role: 'user', password: 'password123' },
+  { id: 'user-admin-01', username: 'admin', email: 'admin@example.com', role: 'admin', isActive: true },
+  { id: 'user-officer-01', username: 'janjira', email: 'janjira@example.com', role: 'officer', isActive: true },
+  { id: 'user-basic-01', username: 'somchai', email: 'somchai@example.com', role: 'user', isActive: true },
 ];
 
 const initialEstablishmentTypes: string[] = [
@@ -69,10 +69,16 @@ export interface ProjectCategorySetting {
 }
 
 const initialProjectCategories: ProjectCategorySetting[] = [
+  { key: 'Consulting', label: 'งานที่ปรึกษา' },
   { key: 'Research', label: 'งานวิจัย' },
   { key: 'Academic Services', label: 'งานบริการวิชาการ' },
-  { key: 'Student Projects', label: 'งานนิสิตโครงงานร่วมกับผู้ประกอบการ' },
-  { key: 'Lab Services', label: 'งานบริการห้องปฏิบัติการ' }
+  { key: 'Biz-Lab', label: 'งานโครงการ Biz-Lab' }
+];
+
+const initialFiscalYears: string[] = [
+  '2567',
+  '2566',
+  '2565'
 ];
 
 const App: React.FC = () => {
@@ -86,6 +92,7 @@ const App: React.FC = () => {
   const [establishmentTypes, setEstablishmentTypes] = useState<string[]>(initialEstablishmentTypes);
   const [businessCategories, setBusinessCategories] = useState<string[]>(initialBusinessCategories);
   const [projectCategories, setProjectCategories] = useState<ProjectCategorySetting[]>(initialProjectCategories);
+  const [fiscalYears, setFiscalYears] = useState<string[]>(initialFiscalYears);
 
   const { showNotification } = useNotification();
 
@@ -133,6 +140,8 @@ const App: React.FC = () => {
       setBusinessCategories={setBusinessCategories}
       projectCategories={projectCategories}
       setProjectCategories={setProjectCategories}
+      fiscalYears={fiscalYears}
+      setFiscalYears={setFiscalYears}
     />
   );
 };

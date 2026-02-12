@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { User, Role } from '../types';
-import { ChevronDownIcon } from './icons';
+import { ChevronDownIcon, GoogleIcon } from './icons';
 
 interface LoginPageProps {
     onLogin: (user: User) => void;
@@ -9,100 +8,118 @@ interface LoginPageProps {
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     const [role, setRole] = useState<Role>('user');
-    
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const usernameInput = (e.currentTarget as HTMLFormElement).elements.namedItem('username') as HTMLInputElement;
+        // Simulate Google Login by using the selected role
         const user: User = {
             id: `user${Date.now()}`,
-            username: usernameInput.value || 'Demo User',
+            username: `Google User (${role})`,
             role: role,
         };
         onLogin(user);
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-slate-100 p-4 font-sans">
-            <div className="w-full max-w-sm mx-auto animate-fade-in">
-                <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-500">
-                        BIZ System
-                    </h1>
-                    <p className="mt-2 text-slate-500 font-body">
-                        ระบบบริหารจัดการข้อมูลผู้ประกอบการ
-                    </p>
-                </div>
-                
-                <div className="bg-white/80 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-2xl p-8">
-                    <h2 className="text-2xl font-bold text-slate-800 text-center mb-1">ยินดีต้อนรับ</h2>
-                    <p className="text-center text-slate-500 mb-6 font-body">
-                        กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ
-                    </p>
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-1">
-                                ชื่อผู้ใช้
-                            </label>
-                            <input
-                                id="username"
-                                name="username"
-                                type="text"
-                                autoComplete="username"
-                                required
-                                defaultValue="admin"
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="password"className="block text-sm font-medium text-slate-700 mb-1">
-                                รหัสผ่าน
-                            </label>
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                autoComplete="current-password"
-                                required
-                                defaultValue="password"
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
-                            />
-                        </div>
-                        
-                        <div>
-                            <label htmlFor="role" className="block text-sm font-medium text-slate-700 mb-1">
-                                บทบาท
-                            </label>
-                            <div className="relative">
-                                <select
-                                    id="role"
-                                    value={role}
-                                    onChange={(e) => setRole(e.target.value as Role)}
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none font-body"
-                                >
-                                    <option value="user">ผู้ใช้งานทั่วไป (ดูข้อมูล)</option>
-                                    <option value="officer">เจ้าหน้าที่ (แก้ไขข้อมูล)</option>
-                                    <option value="admin">ผู้ดูแลระบบ (สิทธิ์ทั้งหมด)</option>
-                                </select>
-                                <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                            </div>
-                        </div>
-
-
-                        <div>
-                            <button
-                                type="submit"
-                                className="w-full flex justify-center bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-5 py-3 font-semibold rounded-lg shadow-lg hover:opacity-90 transition-all duration-300 transform hover:scale-105"
-                            >
-                                เข้าสู่ระบบ
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                <p className="text-center text-xs text-slate-400 mt-8">
-                    &copy; {new Date().getFullYear()} BIZ System. All rights reserved.
-                </p>
+        <div className="flex items-center justify-center min-h-screen bg-slate-100 p-4 font-title relative overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200">
+            {/* Ambient Background Elements */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+                <div className="absolute top-[10%] left-[10%] w-[30%] h-[30%] bg-blue-400/20 rounded-full blur-[100px] animate-pulse-slow"></div>
+                <div className="absolute bottom-[20%] right-[10%] w-[25%] h-[25%] bg-green-400/20 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
             </div>
+
+            <div className="w-full max-w-4xl animate-fade-in relative z-10">
+                <div className="bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[550px]">
+
+                    {/* Left Side: System Info & Design */}
+                    <div className="w-full md:w-1/2 p-10 flex flex-col justify-center items-center text-white relative overflow-hidden group bg-slate-900">
+                        {/* Background Image */}
+                        <div className="absolute inset-0 z-0">
+                            <img
+                                src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                                alt="Background"
+                                className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000"
+                            />
+                            {/* Gradient Overlay for Text Readability */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-900/90 to-slate-900/90 mix-blend-multiply"></div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent"></div>
+                        </div>
+
+                        {/* Decorative Circles */}
+                        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-30 z-10">
+                            <div className="absolute -top-10 -left-10 w-40 h-40 bg-blue-500 rounded-full blur-3xl mix-blend-screen animate-pulse-slow"></div>
+                            <div className="absolute bottom-10 right-10 w-32 h-32 bg-teal-500 rounded-full blur-3xl mix-blend-screen animate-pulse-slow" style={{ animationDelay: '1.5s' }}></div>
+                        </div>
+
+                        <div className="relative z-20 text-center flex flex-col items-center">
+                            <img src="https://biz.ldsc.nu.ac.th/wp-content/uploads/2026/02/final-logo-biz-tr_Artboard-2.png" alt="BIZ Logo" className="h-48 mb-8 object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500" />
+                            <p className="text-lg font-medium tracking-widest uppercase opacity-90 drop-shadow-md text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-cyan-300 to-green-300">
+                                BIZ Center Service & Data Management System
+                            </p>
+                        </div>
+                        <p className="mt-12 text-blue-100/60 text-xs font-light absolute bottom-6 z-20">
+                            &copy; {new Date().getFullYear()} Enterprise Data Center
+                        </p>
+                    </div>
+
+                    {/* Right Side: Login Form */}
+                    <div className="w-full md:w-1/2 p-10 bg-white flex flex-col justify-center">
+                        <div className="text-center mb-10">
+                            <h2 className="text-3xl font-bold text-slate-800 mb-2">ยินดีต้อนรับ</h2>
+                            <p className="text-slate-500 font-light text-base">
+                                กรุณาเข้าสู่ระบบ
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-8 flex flex-col items-center">
+
+                            <div className="w-full text-center space-y-2">
+                                <button
+                                    type="submit"
+                                    className="w-full flex justify-center items-center gap-3 bg-white border border-slate-200 text-slate-700 px-6 py-4 font-medium rounded-xl shadow-sm hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 transform group"
+                                >
+                                    <GoogleIcon className="w-6 h-6" />
+                                    <span className="text-lg">เข้าสู่ระบบด้วย Google</span>
+                                </button>
+                                <p className="text-xs text-slate-400 font-light pt-2">
+                                    สำหรับบัญชี <span className="font-semibold text-slate-500">@nu.ac.th</span> เท่านั้น
+                                </p>
+                            </div>
+
+                            <div className="w-full pt-4 border-t border-slate-100">
+                                <div className="group relative">
+                                    <label htmlFor="role" className="block text-xs font-medium text-slate-400 mb-2 text-center uppercase tracking-wider">
+                                        ระดับผู้ใช้งาน (Demo)
+                                    </label>
+                                    <div className="relative max-w-xs mx-auto">
+                                        <select
+                                            id="role"
+                                            value={role}
+                                            onChange={(e) => setRole(e.target.value as Role)}
+                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer text-center"
+                                        >
+                                            <option value="user">ผู้ใช้งานทั่วไป</option>
+                                            <option value="officer">เจ้าหน้าที่</option>
+                                            <option value="admin">ผู้ดูแลระบบ</option>
+                                        </select>
+                                        <ChevronDownIcon className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes pulse-slow {
+                    0%, 100% { opacity: 0.4; transform: scale(1); }
+                    50% { opacity: 0.7; transform: scale(1.1); }
+                }
+                .animate-pulse-slow {
+                    animation: pulse-slow 8s infinite ease-in-out;
+                }
+            `}</style>
         </div>
     );
 };

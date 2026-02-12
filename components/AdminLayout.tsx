@@ -8,6 +8,7 @@ import ProjectView from './ProjectView';
 import BizProjectView from './BizProjectView';
 import CourseView from './CourseView';
 import ConsultantView from './ConsultantView';
+import AIAnalysisView from './AIAnalysisView';
 import SettingsView from './SettingsView';
 import Modal from './Modal';
 import { Bars3Icon, ExclamationTriangleIcon } from './icons';
@@ -32,6 +33,8 @@ interface AdminLayoutProps {
     setBusinessCategories: React.Dispatch<React.SetStateAction<string[]>>;
     projectCategories: ProjectCategorySetting[];
     setProjectCategories: React.Dispatch<React.SetStateAction<ProjectCategorySetting[]>>;
+    fiscalYears: string[];
+    setFiscalYears: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({
@@ -45,6 +48,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
     establishmentTypes, setEstablishmentTypes,
     businessCategories, setBusinessCategories,
     projectCategories, setProjectCategories,
+    fiscalYears, setFiscalYears,
 }) => {
     const [activeView, setActiveView] = useState<ViewType>(ViewType.Dashboard);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -67,9 +71,17 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
         };
     }, [isSidebarOpen]);
 
+    // Force Dashboard view on initial mount (login)
+    useEffect(() => {
+        setActiveView(ViewType.Dashboard);
+    }, []);
+
     // Redirect if non-admin tries to access Settings
     useEffect(() => {
         if (activeView === ViewType.Settings && currentUser.role !== 'admin') {
+            setActiveView(ViewType.Dashboard);
+        }
+        if (activeView === ViewType.AIAnalysis && currentUser.role === 'user') {
             setActiveView(ViewType.Dashboard);
         }
     }, [activeView, currentUser.role]);
@@ -96,16 +108,23 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
                 />;
                 break;
             case ViewType.Projects:
-                viewComponent = <ProjectView userRole={userRole} projects={projects} setProjects={setProjects} entrepreneurs={entrepreneurs} projectCategories={projectCategories} />;
+                viewComponent = <ProjectView userRole={userRole} projects={projects} setProjects={setProjects} entrepreneurs={entrepreneurs} projectCategories={projectCategories} fiscalYears={fiscalYears} />;
                 break;
             case ViewType.BizProjects:
-                viewComponent = <BizProjectView projects={projects} entrepreneurs={entrepreneurs} projectCategories={projectCategories} />;
+                viewComponent = <BizProjectView projects={projects} entrepreneurs={entrepreneurs} projectCategories={projectCategories} fiscalYears={fiscalYears} />;
                 break;
             case ViewType.Courses:
                 viewComponent = <CourseView userRole={userRole} courses={courses} setCourses={setCourses} />;
                 break;
             case ViewType.Consultants:
                 viewComponent = <ConsultantView userRole={userRole} consultants={consultants} setConsultants={setConsultants} />;
+                break;
+            case ViewType.AIAnalysis:
+                if (userRole === 'admin' || userRole === 'officer') {
+                    viewComponent = <AIAnalysisView consultants={consultants} entrepreneurs={entrepreneurs} />;
+                } else {
+                    viewComponent = <DashboardView entrepreneurs={entrepreneurs} projects={projects} courses={courses} consultants={consultants} />;
+                }
                 break;
             case ViewType.Settings:
                 if (userRole === 'admin') {
@@ -118,6 +137,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
                         setBusinessCategories={setBusinessCategories}
                         projectCategories={projectCategories}
                         setProjectCategories={setProjectCategories}
+                        fiscalYears={fiscalYears}
+                        setFiscalYears={setFiscalYears}
                     />;
                 } else {
                     // Redirect is handled in useEffect
@@ -150,7 +171,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
                     <button onClick={() => setIsSidebarOpen(true)} className="p-1 -ml-1 text-slate-700 hover:text-blue-600">
                         <Bars3Icon className="w-7 h-7" />
                     </button>
-                    <h1 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-500">BIZ System</h1>
+                    <h1 className="text-lg font-medium font-title text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-500">BIZ System</h1>
                 </header>
                 <div className="p-4 sm:p-6 md:p-8">
                     {renderView()}

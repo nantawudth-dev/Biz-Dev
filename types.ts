@@ -8,7 +8,8 @@ export interface User {
 }
 
 export interface UserAccount extends User {
-  password?: string;
+  email: string;
+  isActive: boolean;
 }
 
 export interface Entrepreneur {
@@ -24,7 +25,7 @@ export interface Entrepreneur {
   nickname?: string;    // ชื่อเล่น (Optional)
 }
 
-export type ProjectCategory = 'Research' | 'Academic Services' | 'Student Projects' | 'Lab Services';
+export type ProjectCategory = 'Consulting' | 'Research' | 'Academic Services' | 'Biz-Lab';
 
 export interface Project {
   id: string;
@@ -36,6 +37,9 @@ export interface Project {
   projectLeader: string; // หัวหน้าโครงการ
   coProjectLeader?: string; // ผู้ร่วมดำเนินการ (Optional)
   outcome?: string;
+  budget: number; // งบประมาณ
+  fiscalYear?: string; // ปีงบประมาณ
+  completeReportLink?: string; // ลิงก์รายงานฉบับสมบูรณ์
 }
 
 export interface Course {
@@ -44,6 +48,9 @@ export interface Course {
   description: string;
   duration: string;
   instructor: string;
+  syllabusLink?: string; // ลิงก์หลักสูตร
+  contactPhone?: string; // เบอร์โทรศัพท์ติดต่อ
+  contactEmail?: string; // อีเมลติดต่อ
 }
 
 export interface Consultant {
@@ -51,6 +58,8 @@ export interface Consultant {
   name: string;
   expertise: string[];
   contact: string;
+  phone?: string;
+  workplace?: string;
 }
 
 export enum ViewType {
@@ -62,4 +71,5 @@ export enum ViewType {
   Consultants = 'consultants',
   UserManagement = 'user-management',
   Settings = 'settings',
+  AIAnalysis = 'ai-analysis',
 }

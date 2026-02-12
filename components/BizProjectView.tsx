@@ -1,52 +1,91 @@
 
 import React, { useState } from 'react';
 import { Project, Entrepreneur, ProjectCategory } from '../types';
-import { SparklesIcon, Squares2X2Icon, ListBulletIcon, FunnelIcon, MagnifyingGlassIcon } from './icons';
+import { SparklesIcon, Squares2X2Icon, ListBulletIcon, FunnelIcon, MagnifyingGlassIcon, CalendarIcon, DocumentTextIcon, ChevronDownIcon, EyeIcon, BriefcaseIcon, ArrowLeftIcon, BuildingOffice2Icon, CurrencyDollarIcon, TagIcon, CheckCircleIcon, UserCircleIcon, BookOpenIcon } from './icons';
 import { ProjectCategorySetting } from '../App';
 
 interface BizProjectViewProps {
-  projects: Project[];
-  entrepreneurs: Entrepreneur[];
-  projectCategories: ProjectCategorySetting[];
+    projects: Project[];
+    entrepreneurs: Entrepreneur[];
+    projectCategories: ProjectCategorySetting[];
+    fiscalYears: string[];
 }
 
-const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs, projectCategories }) => {
-    const [displayMode, setDisplayMode] = useState<'card' | 'list'>('card');
+const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number | string; gradient: string }> = ({ icon, label, value, gradient }) => (
+    <div className={`relative overflow-hidden rounded-xl shadow-lg p-6 flex items-center gap-6 ${gradient} text-white`}>
+        <div className={`relative z-10 p-4 rounded-full bg-white/20 backdrop-blur-sm`}>
+            {React.cloneElement(icon as React.ReactElement, { className: "w-8 h-8 text-white" })}
+        </div>
+        <div className="relative z-10">
+            <p className="text-4xl font-bold">{value}</p>
+            <p className="text-base font-semibold opacity-90">{label}</p>
+        </div>
+        {/* Faded Background Icon */}
+        <div className="absolute -right-6 -bottom-6 opacity-10 transform rotate-12 pointer-events-none">
+            {React.cloneElement(icon as React.ReactElement, { className: "w-40 h-40 text-white" })}
+        </div>
+    </div>
+);
+
+
+const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs, projectCategories, fiscalYears }) => {
+    const [displayMode, setDisplayMode] = useState<'card' | 'list'>('list');
     const [selectedCategory, setSelectedCategory] = useState<ProjectCategory | 'All'>('All');
+    const [selectedYear, setSelectedYear] = useState<string>('All');
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
     const categoriesForFilter = [{ key: 'All', label: 'แสดงทั้งหมด' }, ...projectCategories];
+
+    const handleBackToList = () => {
+        setSelectedProject(null);
+    };
 
     const filteredProjects = projects
         .filter(p => p.status === 'Completed')
         .filter(p => selectedCategory === 'All' || p.category === selectedCategory)
-        .filter(p => 
+        .filter(p => selectedYear === 'All' || p.fiscalYear === selectedYear)
+        .filter(p =>
             p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (p.outcome || '').toLowerCase().includes(searchTerm.toLowerCase())
         );
-    
+
     const CardView = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProjects.map(proj => {
-                const entrepreneur = entrepreneurs.find(e => e.id === proj.entrepreneurId);
                 return (
-                    <div key={proj.id} className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-lg hover:shadow-blue-500/10 hover:-translate-y-1 transition-all duration-300 flex flex-col">
-                        <div className="p-6 flex-grow flex flex-col">
+                    <div key={proj.id} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group flex flex-col">
+                        <div className="p-6 relative z-10 flex flex-col h-full">
                             <div className="flex justify-between items-start mb-2">
-                                <h4 className="text-xl font-bold text-slate-900">{proj.name}</h4>
-                                <span className={`px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800`}>Completed</span>
+                                <h4 className="text-xl font-medium font-title text-slate-900 line-clamp-1" title={proj.name}>{proj.name}</h4>
+                                <span className={`flex-shrink-0 px-3 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800`}>Completed</span>
                             </div>
                             <div className="text-slate-600 mb-4 flex-grow font-body mt-2">
                                 <p className="font-semibold text-slate-700 flex items-center gap-2 mb-2">
-                                    <SparklesIcon className="w-5 h-5 text-green-500" />
+                                    <SparklesIcon className="w-5 h-5 text-amber-500" />
                                     ผลลัพธ์ที่ได้:
                                 </p>
-                                <p className="pl-1">{proj.outcome || 'N/A'}</p>
+                                <p className="pl-1 line-clamp-3">{proj.outcome || 'N/A'}</p>
                             </div>
-                            <div className="border-t border-slate-200 pt-4 mt-auto">
-                                <p className="text-sm text-slate-500 font-medium">
-                                    สำหรับ: <span className="font-semibold text-slate-800">{entrepreneur?.businessName || 'ไม่ระบุ'}</span>
+                            <div className="text-sm text-slate-500 mb-4 space-y-1">
+                                <p className="flex items-center gap-2">
+                                    <CalendarIcon className="w-4 h-4 text-slate-400" />
+                                    <span>ปีงบประมาณ: <span className="font-semibold text-slate-700">{proj.fiscalYear || '-'}</span></span>
                                 </p>
+                                <p className="flex items-center gap-2">
+                                    <TagIcon className="w-4 h-4 text-slate-400" />
+                                    <span>{projectCategories.find(c => c.key === proj.category)?.label || proj.category}</span>
+                                </p>
+                            </div>
+
+                            <div className="border-t border-slate-200/60 pt-4 mt-auto flex gap-2">
+                                <button
+                                    onClick={() => setSelectedProject(proj)}
+                                    className="flex-1 py-2 bg-white border border-emerald-200 text-emerald-600 font-semibold rounded-lg hover:bg-emerald-50 transition-all shadow-sm flex items-center justify-center gap-2"
+                                >
+                                    <EyeIcon className="w-4 h-4" />
+                                    ดูรายละเอียด
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -57,44 +96,200 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
 
     const ListView = () => (
         <div className="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
-            {filteredProjects.map((proj, index) => {
-                const entrepreneur = entrepreneurs.find(e => e.id === proj.entrepreneurId);
-                const categoryLabel = projectCategories.find(c => c.key === proj.category)?.label;
-                return (
-                    <div key={proj.id} className={`p-4 ${index < filteredProjects.length - 1 ? 'border-b border-slate-200' : ''}`}>
-                       <div className="flex flex-col md:flex-row md:items-start gap-4">
-                            <div className="flex-1">
-                                <p className="text-lg font-bold text-slate-900">{proj.name}</p>
-                                <p className="text-sm text-slate-500">
-                                    <span className="font-medium">สำหรับ:</span> {entrepreneur?.businessName || 'ไม่ระบุ'} | <span className="font-medium">ประเภท:</span> {categoryLabel}
-                                </p>
-                            </div>
-                            <div className="flex-shrink-0">
-                                <span className={`px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800`}>Completed</span>
-                            </div>
-                       </div>
-                       <div className="text-slate-600 mt-2 font-body text-sm pl-1">
-                          <p className="font-semibold text-slate-700 flex items-center gap-1.5 mb-1">
-                            <SparklesIcon className="w-4 h-4 text-green-500" />
-                            ผลลัพธ์:
-                          </p>
-                          <p className="pl-2">{proj.outcome || 'N/A'}</p>
-                       </div>
-                    </div>
-                )
-            })}
+            <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                    <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อโครงการ</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ปีงบ</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ผู้ประกอบการ</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ประเภท</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ผลลัพธ์</th>
+                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider font-title">สถานะ</th>
+                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-slate-200">
+                    {filteredProjects.map((proj) => {
+                        const categoryLabel = projectCategories.find(c => c.key === proj.category)?.label;
+                        return (
+                            <tr key={proj.id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm font-medium text-slate-900">{proj.name}</div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm text-slate-500">{proj.fiscalYear || '-'}</div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm text-slate-500">{proj.entrepreneur || '-'}</div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm text-slate-500">{categoryLabel}</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="text-sm text-slate-600 font-body line-clamp-2" title={proj.outcome}>
+                                        {proj.outcome || '-'}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800`}>
+                                        Completed
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div className="flex items-center justify-end gap-2">
+                                        <button
+                                            onClick={() => setSelectedProject(proj)}
+                                            className="text-slate-400 hover:text-blue-600 transition-colors p-1"
+                                            title="ดูรายละเอียด"
+                                        >
+                                            <EyeIcon className="w-5 h-5" />
+                                        </button>
+                                        {proj.completeReportLink && (
+                                            <a
+                                                href={proj.completeReportLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-slate-400 hover:text-blue-600 transition-colors p-1"
+                                                title="ดูรายงานฉบับสมบูรณ์"
+                                            >
+                                                <DocumentTextIcon className="w-5 h-5" />
+                                            </a>
+                                        )}
+                                    </div>
+                                </td>
+                            </tr>
+                        )
+                    })}
+                </tbody>
+            </table>
         </div>
     );
 
+    // View: Project Details
+    if (selectedProject) {
+        return (
+            <div className="space-y-6">
+                {/* Header with Back Button */}
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={handleBackToList}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-md font-semibold"
+                    >
+                        <ArrowLeftIcon className="w-5 h-5" />
+                        กลับ
+                    </button>
+                    <div className="flex items-center gap-3">
+                        <BriefcaseIcon className="w-8 h-8 text-emerald-600" />
+                        <h2 className="text-3xl font-medium font-title text-slate-900">{selectedProject.name}</h2>
+                    </div>
+                </div>
+
+                {/* Project Details Card */}
+                <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-8 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ชื่อโครงการ</label>
+                            <p className="text-lg font-medium text-slate-900 mt-1">{selectedProject.name}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">สถานะ</label>
+                            <div className="mt-1">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-800 text-sm font-semibold rounded-full">
+                                    {selectedProject.status === 'Completed' && <CheckCircleIcon className="w-4 h-4" />}
+                                    {selectedProject.status}
+                                </span>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">หมวดหมู่</label>
+                            <p className="text-lg font-medium text-slate-900 mt-1">
+                                {projectCategories.find(c => c.key === selectedProject.category)?.label || selectedProject.category}
+                            </p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ผู้ประกอบการ</label>
+                            <p className="text-lg font-medium text-slate-900 mt-1">{selectedProject.entrepreneur}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">งบประมาณ</label>
+                            <p className="text-lg font-medium text-slate-900 mt-1">{selectedProject.budget ? selectedProject.budget.toLocaleString() : '0'} บาท</p>
+                        </div>
+                        {selectedProject.fiscalYear && (
+                            <div>
+                                <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ปีงบประมาณ</label>
+                                <p className="text-lg font-medium text-slate-900 mt-1">{selectedProject.fiscalYear}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {selectedProject.description && (
+                        <div>
+                            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">รายละเอียด</label>
+                            <p className="text-base text-slate-700 mt-2 leading-relaxed">{selectedProject.description}</p>
+                        </div>
+                    )}
+
+                    {selectedProject.outcome && (
+                        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-6">
+                            <label className="text-sm font-semibold text-emerald-700 uppercase tracking-wide flex items-center gap-2">
+                                <CheckCircleIcon className="w-5 h-5" />
+                                ผลลัพธ์โครงการ
+                            </label>
+                            <p className="text-base text-slate-800 mt-3 leading-relaxed">{selectedProject.outcome || 'ยังไม่มีข้อมูลผลลัพธ์'}</p>
+                        </div>
+                    )}
+
+                    {/* Team Information */}
+                    <div className="border-t border-slate-200 pt-6">
+                        <h3 className="text-lg font-semibold text-slate-800 mb-4">ทีมงาน</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-start gap-3">
+                                <UserCircleIcon className="w-6 h-6 text-blue-600 mt-0.5" />
+                                <div>
+                                    <label className="text-sm font-semibold text-slate-500">หัวหน้าโครงการ</label>
+                                    <p className="text-base font-medium text-slate-900">{selectedProject.projectLeader}</p>
+                                </div>
+                            </div>
+                            {selectedProject.coProjectLeader && (
+                                <div className="flex items-start gap-3">
+                                    <UserCircleIcon className="w-6 h-6 text-slate-600 mt-0.5" />
+                                    <div>
+                                        <label className="text-sm font-semibold text-slate-500">ผู้ร่วมดำเนินการ</label>
+                                        <p className="text-base font-medium text-slate-900">{selectedProject.coProjectLeader}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {selectedProject.completeReportLink && (
+                        <div className="border-t border-slate-200 pt-6">
+                            <a
+                                href={selectedProject.completeReportLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-opacity font-semibold"
+                            >
+                                <BookOpenIcon className="w-5 h-5" />
+                                ดูรายงานฉบับสมบูรณ์
+                            </a>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    // View: Project List (Default)
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <h2 className="text-4xl font-bold text-slate-900">ผลลัพธ์โครงการ</h2>
+                <h2 className="text-3xl font-medium font-title text-slate-900">ผลลัพธ์โครงการ</h2>
             </div>
 
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
                 <div className="w-full md:w-auto md:flex-1 relative">
-                    <input 
+                    <input
                         type="text"
                         placeholder="ค้นหาชื่อโครงการหรือผลลัพธ์..."
                         value={searchTerm}
@@ -103,18 +298,33 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
                     />
                     <MagnifyingGlassIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 </div>
-                <div className="w-full md:w-auto flex items-center justify-end gap-2">
+                <div className="w-full md:w-auto flex flex-wrap items-center justify-end gap-2">
                     <div className="relative">
-                        <select 
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                            className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors appearance-none font-semibold text-sm cursor-pointer"
+                        >
+                            <option value="All">ทุกปีงบประมาณ</option>
+                            {fiscalYears.map(year => (
+                                <option key={year} value={year}>{year}</option>
+                            ))}
+                        </select>
+                        <CalendarIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                    <div className="relative">
+                        <select
                             value={selectedCategory}
                             onChange={(e) => setSelectedCategory(e.target.value as ProjectCategory | 'All')}
-                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors appearance-none font-semibold text-sm"
+                            className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors appearance-none font-semibold text-sm"
                         >
                             {categoriesForFilter.map(cat => (
                                 <option key={cat.key} value={cat.key}>{cat.label}</option>
                             ))}
                         </select>
                         <FunnelIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
                     <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
                         <button onClick={() => setDisplayMode('card')} className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors ${displayMode === 'card' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-100'}`} aria-pressed={displayMode === 'card'} title="Card View">
@@ -125,6 +335,34 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
                         </button>
                     </div>
                 </div>
+            </div>
+
+            {/* Project Category Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard
+                    icon={<BriefcaseIcon />}
+                    label="งานที่ปรึกษา"
+                    value={projects.filter(p => p.status === 'Completed' && p.category === 'Consulting').length}
+                    gradient="bg-gradient-to-br from-indigo-500 to-purple-600"
+                />
+                <StatCard
+                    icon={<BriefcaseIcon />}
+                    label="งานวิจัย"
+                    value={projects.filter(p => p.status === 'Completed' && p.category === 'Research').length}
+                    gradient="bg-gradient-to-br from-blue-500 to-cyan-600"
+                />
+                <StatCard
+                    icon={<BriefcaseIcon />}
+                    label="งานบริการวิชาการ"
+                    value={projects.filter(p => p.status === 'Completed' && p.category === 'Academic Services').length}
+                    gradient="bg-gradient-to-br from-purple-500 to-violet-600"
+                />
+                <StatCard
+                    icon={<BriefcaseIcon />}
+                    label="งานโครงการ Biz-Lab"
+                    value={projects.filter(p => p.status === 'Completed' && p.category === 'Biz-Lab').length}
+                    gradient="bg-gradient-to-br from-orange-500 to-amber-600"
+                />
             </div>
 
             {filteredProjects.length > 0 ? (
