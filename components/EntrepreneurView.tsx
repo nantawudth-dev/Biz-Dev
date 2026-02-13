@@ -73,54 +73,57 @@ const CardView = ({ data, userRole, onView, onEdit, onDelete }: { data: Entrepre
 
 const ListView = ({ data, userRole, onView, onEdit, onDelete }: { data: Entrepreneur[], userRole: Role, onView: (ent: Entrepreneur) => void, onEdit: (ent: Entrepreneur) => void, onDelete: (ent: Entrepreneur) => void }) => (
   <div className="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
-    <table className="min-w-full divide-y divide-slate-200">
-      <thead className="bg-slate-50">
-        <tr>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อสถานประกอบการ</th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ประเภท</th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">หมวดธุรกิจ</th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ผู้ติดต่อ</th>
-          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">จัดการ</th>
-        </tr>
-      </thead>
-      <tbody className="bg-white divide-y divide-slate-200">
-        {data.map((ent) => (
-          <tr key={ent.id} className="hover:bg-slate-50 transition-colors">
-            <td className="px-6 py-4 whitespace-nowrap">
-              <div className="text-sm font-medium text-slate-900">{ent.businessName}</div>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-              <div className="text-sm text-slate-500">{ent.establishmentType}</div>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-              <div className="text-sm text-slate-500">{ent.businessCategory}</div>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-              <div className="text-sm text-slate-900">{ent.name}</div>
-              {ent.nickname && <div className="text-xs text-slate-500">({ent.nickname})</div>}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-              <div className="flex items-center justify-end gap-4">
-                <button
-                  onClick={() => onView(ent)}
-                  className="text-slate-400 hover:text-blue-600 transition-colors"
-                  title="ดูรายละเอียด"
-                >
-                  <EyeIcon className="w-5 h-5" />
-                </button>
-                {(userRole === 'admin' || userRole === 'officer') && (
-                  <>
-                    <button onClick={() => onEdit(ent)} className="text-slate-400 hover:text-blue-600 transition-colors" title="แก้ไขข้อมูล"><PencilIcon className="w-5 h-5" /></button>
-                    <button onClick={() => onDelete(ent)} className="text-slate-400 hover:text-red-600 transition-colors" title="ลบข้อมูล"><TrashIcon className="w-5 h-5" /></button>
-                  </>
-                )}
-
-              </div>
-            </td>
+    <div className="overflow-x-auto mobile-card-wrapper">
+      <table className="min-w-full divide-y divide-slate-200 mobile-card-table">
+        <thead className="bg-slate-50">
+          <tr>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อสถานประกอบการ</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ประเภท</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">หมวดธุรกิจ</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ผู้ติดต่อ</th>
+            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">จัดการ</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody className="bg-white divide-y divide-slate-200">
+          {data.map((ent) => (
+            <tr key={ent.id} onClick={() => onView(ent)} className="hover:bg-slate-50 transition-colors cursor-pointer">
+              <td data-label="ชื่อธุรกิจ" className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium text-slate-900">{ent.businessName}</div>
+              </td>
+              <td data-label="ประเภท" className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm text-slate-500">{ent.establishmentType}</div>
+              </td>
+              <td data-label="หมวดธุรกิจ" className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm text-slate-500">{ent.businessCategory}</div>
+              </td>
+              <td data-label="ผู้ติดต่อ" className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm text-slate-900">{ent.name}</div>
+                {ent.nickname && <div className="text-xs text-slate-500">({ent.nickname})</div>}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <div className="flex items-center justify-end gap-4">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onView(ent); }}
+                    className="text-slate-400 hover:text-blue-600 transition-colors"
+                    title="ดูรายละเอียด"
+                  >
+                    <EyeIcon className="w-5 h-5" />
+                  </button>
+                  {(userRole === 'admin' || userRole === 'officer') && (
+                    <>
+                      <button onClick={(e) => { e.stopPropagation(); onEdit(ent); }} className="text-slate-400 hover:text-blue-600 transition-colors" title="แก้ไขข้อมูล"><PencilIcon className="w-5 h-5" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); onDelete(ent); }} className="text-slate-400 hover:text-red-600 transition-colors" title="ลบข้อมูล"><TrashIcon className="w-5 h-5" /></button>
+                    </>
+                  )}
+
+                </div>
+              </td>
+            </tr>
+          ))
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 );
 
@@ -139,6 +142,21 @@ const EntrepreneurView: React.FC<EntrepreneurViewProps> = ({ userRole, entrepren
   const [selectedEstablishment, setSelectedEstablishment] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Force card view on mobile
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setDisplayMode('card');
+      }
+    };
+
+    // Initial check
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const { showNotification } = useNotification();
 
@@ -387,7 +405,7 @@ const EntrepreneurView: React.FC<EntrepreneurViewProps> = ({ userRole, entrepren
             </select>
             <FunnelIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
-          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+          <div className="hidden md:flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
             <button onClick={() => setDisplayMode('card')} className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors ${displayMode === 'card' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-100'}`}><Squares2X2Icon className="w-5 h-5" /></button>
             <button onClick={() => setDisplayMode('list')} className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors ${displayMode === 'list' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-100'}`}><ListBulletIcon className="w-5 h-5" /></button>
           </div>

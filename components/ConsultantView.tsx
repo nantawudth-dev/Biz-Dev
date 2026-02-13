@@ -88,61 +88,78 @@ const CardView = ({ data, userRole, onView, onEdit, onDelete }: { data: Consulta
 
 const ListView = ({ data, userRole, onView, onEdit, onDelete }: { data: Consultant[], userRole: Role, onView: (consultant: Consultant) => void, onEdit: (consultant: Consultant) => void, onDelete: (consultant: Consultant) => void }) => (
   <div className="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
-    <table className="min-w-full divide-y divide-slate-200">
-      <thead className="bg-slate-50">
-        <tr>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อผู้เชี่ยวชาญ</th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">สถานที่ทำงาน</th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ความเชี่ยวชาญ</th>
-          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">จัดการ</th>
-        </tr>
-      </thead>
-      <tbody className="bg-white divide-y divide-slate-200">
-        {data.map((consultant) => (
-          <tr key={consultant.id} className="hover:bg-slate-50 transition-colors">
-            <td className="px-6 py-4 whitespace-nowrap">
-              <div className="text-sm font-medium text-slate-900">{consultant.name}</div>
-              {consultant.phone && <div className="text-xs text-slate-500 mt-1 flex items-center gap-1"><PhoneIcon className="w-3 h-3" /> {consultant.phone}</div>}
-              {consultant.contact && <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1"><EnvelopeIcon className="w-3 h-3" /> {consultant.contact}</div>}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-              <div className="text-sm text-slate-500">{consultant.workplace || '-'}</div>
-            </td>
-            <td className="px-6 py-4">
-              <div className="flex flex-wrap gap-2">
-                {consultant.expertise.map((skill, index) => (
-                  <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-              <div className="flex items-center justify-end gap-4">
-                <button
-                  onClick={() => onView(consultant)}
-                  className="text-slate-400 hover:text-blue-600 transition-colors"
-                  title="ดูรายละเอียด"
-                >
-                  <EyeIcon className="w-5 h-5" />
-                </button>
-                {(userRole === 'admin' || userRole === 'officer') && (
-                  <>
-                    <button onClick={() => onEdit(consultant)} className="text-slate-400 hover:text-blue-600 transition-colors" title="แก้ไขข้อมูล"><PencilIcon className="w-5 h-5" /></button>
-                    <button onClick={() => onDelete(consultant)} className="text-slate-400 hover:text-red-600 transition-colors" title="ลบข้อมูล"><TrashIcon className="w-5 h-5" /></button>
-                  </>
-                )}
-              </div>
-            </td>
+    <div className="overflow-x-auto mobile-card-wrapper">
+      <table className="min-w-full divide-y divide-slate-200 mobile-card-table">
+        <thead className="bg-slate-50">
+          <tr>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อผู้เชี่ยวชาญ</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">สถานที่ทำงาน</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ความเชี่ยวชาญ</th>
+            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">จัดการ</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody className="bg-white divide-y divide-slate-200">
+          {data.map((consultant) => (
+            <tr key={consultant.id} className="hover:bg-slate-50 transition-colors">
+              <td data-label="ชื่อผู้เชี่ยวชาญ" className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium text-slate-900">{consultant.name}</div>
+                {consultant.phone && <div className="text-xs text-slate-500 mt-1 flex items-center gap-1"><PhoneIcon className="w-3 h-3" /> {consultant.phone}</div>}
+                {consultant.contact && <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1"><EnvelopeIcon className="w-3 h-3" /> {consultant.contact}</div>}
+              </td>
+              <td data-label="สถานที่ทำงาน" className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm text-slate-500">{consultant.workplace || '-'}</div>
+              </td>
+              <td data-label="ความเชี่ยวชาญ" className="px-6 py-4">
+                <div className="flex flex-wrap gap-2">
+                  {consultant.expertise.map((skill, index) => (
+                    <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </td>
+              <td data-label="จัดการ" className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <div className="flex items-center justify-end gap-4">
+                  <button
+                    onClick={() => onView(consultant)}
+                    className="text-slate-400 hover:text-blue-600 transition-colors"
+                    title="ดูรายละเอียด"
+                  >
+                    <EyeIcon className="w-5 h-5" />
+                  </button>
+                  {(userRole === 'admin' || userRole === 'officer') && (
+                    <>
+                      <button onClick={() => onEdit(consultant)} className="text-slate-400 hover:text-blue-600 transition-colors" title="แก้ไขข้อมูล"><PencilIcon className="w-5 h-5" /></button>
+                      <button onClick={() => onDelete(consultant)} className="text-slate-400 hover:text-red-600 transition-colors" title="ลบข้อมูล"><TrashIcon className="w-5 h-5" /></button>
+                    </>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   </div>
 );
 
 const ConsultantView: React.FC<ConsultantViewProps> = ({ userRole, consultants, setConsultants }) => {
   const [displayMode, setDisplayMode] = useState<'card' | 'list'>('card');
+
+  // Force card view on mobile
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setDisplayMode('card');
+      }
+    };
+
+    // Initial check
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editingConsultant, setEditingConsultant] = useState<Consultant | null>(null);
@@ -370,7 +387,7 @@ const ConsultantView: React.FC<ConsultantViewProps> = ({ userRole, consultants, 
             </select>
             <FunnelIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
-          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+          <div className="hidden md:flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
             <button onClick={() => setDisplayMode('card')} className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors ${displayMode === 'card' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-100'}`} aria-pressed={displayMode === 'card'} title="Card View">
               <Squares2X2Icon className="w-5 h-5" />
             </button>

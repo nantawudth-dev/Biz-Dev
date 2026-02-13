@@ -49,6 +49,21 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
+  // Force card view on mobile
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setDisplayMode('card');
+      }
+    };
+
+    // Initial check
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleOpenAdd = () => {
     setEditingProject(null);
     setFormData({ ...emptyProject, budget: 0 });
@@ -426,7 +441,7 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
             <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
-          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+          <div className="hidden md:flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
             <button onClick={() => setDisplayMode('card')} className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors ${displayMode === 'card' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-100'}`} aria-pressed={displayMode === 'card'} title="Card View">
               <Squares2X2Icon className="w-5 h-5" />
             </button>
@@ -491,6 +506,8 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
           </div>
         </div>
       </div>
+
+
 
 
       {filteredProjects.length > 0 ? (
@@ -572,70 +589,72 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
             </div>
           ) : (
             <div className="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อโครงการ</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ปีงบ</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">สถานะ</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">หมวดหมู่</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ผู้ประกอบการ</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ทีมงาน</th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">จัดการ</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-slate-200">
-                  {paginatedProjects.map((proj) => (
-                    <tr key={proj.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-slate-900" title={proj.name}>{proj.name.length > 30 ? proj.name.substring(0, 30) + '...' : proj.name}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
-                          {proj.fiscalYear || '-'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(proj.status)}`}>{proj.status}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-slate-500">{projectCategories.find(c => c.key === proj.category)?.label || proj.category}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-slate-900">{proj.entrepreneur}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-xs text-slate-500">
-                          <div><span className="font-semibold">หน:</span> {proj.projectLeader}</div>
-                          {proj.coProjectLeader && <div><span className="font-semibold">ร่วม:</span> {proj.coProjectLeader}</div>}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end gap-3">
-                          <button
-                            onClick={() => setSelectedProject(proj)}
-                            className="text-slate-400 hover:text-emerald-600 transition-colors"
-                            title="ดูรายละเอียด"
-                          >
-                            <EyeIcon className="w-5 h-5" />
-                          </button>
-                          {proj.status === 'Completed' && (userRole === 'admin' || userRole === 'officer') && (
-                            <button onClick={() => handleOpenReport(proj)} className="text-slate-400 hover:text-indigo-600 transition-colors" title="รายงานผลสัมฤทธิ์">
-                              <ClipboardDocumentCheckIcon className="w-5 h-5" />
-                            </button>
-                          )}
-                          {(userRole === 'admin' || userRole === 'officer') && (
-                            <>
-                              <button onClick={() => handleEditProject(proj)} className="text-slate-400 hover:text-blue-600 transition-colors" title="แก้ไข"><PencilIcon className="w-5 h-5" /></button>
-                              <button onClick={() => confirmDeleteProject(proj)} className="text-slate-400 hover:text-red-600 transition-colors" title="ลบ"><TrashIcon className="w-5 h-5" /></button>
-                            </>
-                          )}
-                        </div>
-                      </td>
+              <div className="overflow-x-auto mobile-card-wrapper">
+                <table className="min-w-full divide-y divide-slate-200 mobile-card-table">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อโครงการ</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ปีงบ</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">สถานะ</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">หมวดหมู่</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ผู้ประกอบการ</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ทีมงาน</th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">จัดการ</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-slate-200">
+                    {paginatedProjects.map((proj) => (
+                      <tr key={proj.id} onClick={() => setSelectedProject(proj)} className="hover:bg-slate-50 transition-colors cursor-pointer">
+                        <td data-label="ชื่อโครงการ" className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-slate-900" title={proj.name}>{proj.name.length > 30 ? proj.name.substring(0, 30) + '...' : proj.name}</div>
+                        </td>
+                        <td data-label="ปีงบประมาณ" className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                            {proj.fiscalYear || '-'}
+                          </span>
+                        </td>
+                        <td data-label="สถานะ" className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(proj.status)}`}>{proj.status}</span>
+                        </td>
+                        <td data-label="หมวดหมู่" className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-slate-500">{projectCategories.find(c => c.key === proj.category)?.label || proj.category}</div>
+                        </td>
+                        <td data-label="ผู้ประกอบการ" className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-slate-900">{proj.entrepreneur}</div>
+                        </td>
+                        <td data-label="ทีมงาน" className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-xs text-slate-500">
+                            <div><span className="font-semibold">หน:</span> {proj.projectLeader}</div>
+                            {proj.coProjectLeader && <div><span className="font-semibold">ร่วม:</span> {proj.coProjectLeader}</div>}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end gap-3">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedProject(proj); }}
+                              className="text-slate-400 hover:text-emerald-600 transition-colors"
+                              title="ดูรายละเอียด"
+                            >
+                              <EyeIcon className="w-5 h-5" />
+                            </button>
+                            {proj.status === 'Completed' && (userRole === 'admin' || userRole === 'officer') && (
+                              <button onClick={(e) => { e.stopPropagation(); handleOpenReport(proj); }} className="text-slate-400 hover:text-indigo-600 transition-colors" title="รายงานผลสัมฤทธิ์">
+                                <ClipboardDocumentCheckIcon className="w-5 h-5" />
+                              </button>
+                            )}
+                            {(userRole === 'admin' || userRole === 'officer') && (
+                              <>
+                                <button onClick={(e) => { e.stopPropagation(); handleEditProject(proj); }} className="text-slate-400 hover:text-blue-600 transition-colors" title="แก้ไข"><PencilIcon className="w-5 h-5" /></button>
+                                <button onClick={(e) => { e.stopPropagation(); confirmDeleteProject(proj); }} className="text-slate-400 hover:text-red-600 transition-colors" title="ลบ"><TrashIcon className="w-5 h-5" /></button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
           <Pagination

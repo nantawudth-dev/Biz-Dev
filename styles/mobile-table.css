@@ -1,0 +1,60 @@
+/* Mobile-responsive table to card conversion */
+@media (max-width: 768px) {
+
+    /* Hide table on mobile and show card layout instead */
+    .mobile-card-table thead,
+    .mobile-card-table tbody,
+    .mobile-card-table tr {
+        display: block;
+    }
+
+    .mobile-card-table thead {
+        display: none;
+    }
+
+    .mobile-card-table tr {
+        margin-bottom: 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        background: white;
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+        padding: 1rem;
+    }
+
+    .mobile-card-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0 !important;
+        border: none !important;
+        text-align: left !important;
+    }
+
+    .mobile-card-table td:before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #64748b;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        flex-shrink: 0;
+        margin-right: 1rem;
+    }
+
+    /* Last cell (actions) should be full width */
+    .mobile-card-table td:last-child {
+        justify-content: flex-end;
+        padding-top: 0.75rem !important;
+        margin-top: 0.75rem;
+        border-top: 1px solid #e2e8f0 !important;
+    }
+
+    .mobile-card-table td:last-child:before {
+        display: none;
+    }
+
+    /* Remove overflow scroll on mobile when in card mode */
+    .mobile-card-wrapper {
+        overflow-x: visible !important;
+    }
+}

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Project, Entrepreneur, ProjectCategory } from '../types';
 import { SparklesIcon, Squares2X2Icon, ListBulletIcon, FunnelIcon, MagnifyingGlassIcon, CalendarIcon, DocumentTextIcon, ChevronDownIcon, EyeIcon, BriefcaseIcon, ArrowLeftIcon, BuildingOffice2Icon, CurrencyDollarIcon, TagIcon, CheckCircleIcon, UserCircleIcon, BookOpenIcon } from './icons';
 import { ProjectCategorySetting } from '../App';
+import Pagination from './Pagination';
 
 interface BizProjectViewProps {
     projects: Project[];
@@ -30,10 +31,27 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number |
 
 const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs, projectCategories, fiscalYears }) => {
     const [displayMode, setDisplayMode] = useState<'card' | 'list'>('list');
+
+    // Force card view on mobile
+    React.useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) {
+                setDisplayMode('card');
+            }
+        };
+
+        // Initial check
+        handleResize();
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
     const [selectedCategory, setSelectedCategory] = useState<ProjectCategory | 'All'>('All');
     const [selectedYear, setSelectedYear] = useState<string>('All');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(6);
 
     const categoriesForFilter = [{ key: 'All', label: 'แสดงทั้งหมด' }, ...projectCategories];
 
@@ -44,15 +62,25 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
     const filteredProjects = projects
         .filter(p => p.status === 'Completed')
         .filter(p => selectedCategory === 'All' || p.category === selectedCategory)
-        .filter(p => selectedYear === 'All' || p.fiscalYear === selectedYear)
         .filter(p =>
             p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (p.outcome || '').toLowerCase().includes(searchTerm.toLowerCase())
         );
 
+    // Reset pagination when filters change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedCategory, selectedYear, searchTerm]);
+
+    // Pagination Logic
+    const paginatedProjects = filteredProjects.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
     const CardView = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProjects.map(proj => {
+            {paginatedProjects.map(proj => {
                 return (
                     <div key={proj.id} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group flex flex-col">
                         <div className="p-6 relative z-10 flex flex-col h-full">
@@ -96,72 +124,74 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
 
     const ListView = () => (
         <div className="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                    <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อโครงการ</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ปีงบ</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ผู้ประกอบการ</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ประเภท</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ผลลัพธ์</th>
-                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider font-title">สถานะ</th>
-                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-slate-200">
-                    {filteredProjects.map((proj) => {
-                        const categoryLabel = projectCategories.find(c => c.key === proj.category)?.label;
-                        return (
-                            <tr key={proj.id} className="hover:bg-slate-50 transition-colors">
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-medium text-slate-900">{proj.name}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm text-slate-500">{proj.fiscalYear || '-'}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm text-slate-500">{proj.entrepreneur || '-'}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm text-slate-500">{categoryLabel}</div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="text-sm text-slate-600 font-body line-clamp-2" title={proj.outcome}>
-                                        {proj.outcome || '-'}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800`}>
-                                        Completed
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <div className="flex items-center justify-end gap-2">
-                                        <button
-                                            onClick={() => setSelectedProject(proj)}
-                                            className="text-slate-400 hover:text-blue-600 transition-colors p-1"
-                                            title="ดูรายละเอียด"
-                                        >
-                                            <EyeIcon className="w-5 h-5" />
-                                        </button>
-                                        {proj.completeReportLink && (
-                                            <a
-                                                href={proj.completeReportLink}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
+            <div className="overflow-x-auto mobile-card-wrapper">
+                <table className="min-w-full divide-y divide-slate-200 mobile-card-table">
+                    <thead className="bg-slate-50">
+                        <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อโครงการ</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ปีงบ</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ผู้ประกอบการ</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ประเภท</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ผลลัพธ์</th>
+                            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider font-title">สถานะ</th>
+                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-200">
+                        {paginatedProjects.map((proj) => {
+                            const categoryLabel = projectCategories.find(c => c.key === proj.category)?.label;
+                            return (
+                                <tr key={proj.id} className="hover:bg-slate-50 transition-colors">
+                                    <td data-label="ชื่อโครงการ" className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm font-medium text-slate-900">{proj.name}</div>
+                                    </td>
+                                    <td data-label="ปีงบ" className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-slate-500">{proj.fiscalYear || '-'}</div>
+                                    </td>
+                                    <td data-label="ผู้ประกอบการ" className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-slate-500">{proj.entrepreneur || '-'}</div>
+                                    </td>
+                                    <td data-label="ประเภท" className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-slate-500">{categoryLabel}</div>
+                                    </td>
+                                    <td data-label="ผลลัพธ์" className="px-6 py-4">
+                                        <div className="text-sm text-slate-600 font-body line-clamp-2" title={proj.outcome}>
+                                            {proj.outcome || '-'}
+                                        </div>
+                                    </td>
+                                    <td data-label="สถานะ" className="px-6 py-4 whitespace-nowrap text-center">
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800`}>
+                                            Completed
+                                        </span>
+                                    </td>
+                                    <td data-label="จัดการ" className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={() => setSelectedProject(proj)}
                                                 className="text-slate-400 hover:text-blue-600 transition-colors p-1"
-                                                title="ดูรายงานฉบับสมบูรณ์"
+                                                title="ดูรายละเอียด"
                                             >
-                                                <DocumentTextIcon className="w-5 h-5" />
-                                            </a>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
-                        )
-                    })}
-                </tbody>
-            </table>
+                                                <EyeIcon className="w-5 h-5" />
+                                            </button>
+                                            {proj.completeReportLink && (
+                                                <a
+                                                    href={proj.completeReportLink}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-slate-400 hover:text-blue-600 transition-colors p-1"
+                                                    title="ดูรายงานฉบับสมบูรณ์"
+                                                >
+                                                    <DocumentTextIcon className="w-5 h-5" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            )
+                        })}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 
@@ -322,7 +352,7 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
                         <FunnelIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                         <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
-                    <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                    <div className="hidden md:flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
                         <button onClick={() => setDisplayMode('card')} className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors ${displayMode === 'card' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-100'}`} aria-pressed={displayMode === 'card'} title="Card View">
                             <Squares2X2Icon className="w-5 h-5" />
                         </button>
@@ -361,8 +391,19 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
                 />
             </div>
 
+
+
             {filteredProjects.length > 0 ? (
-                displayMode === 'card' ? <CardView /> : <ListView />
+                <>
+                    {displayMode === 'card' ? <CardView /> : <ListView />}
+                    <Pagination
+                        currentPage={currentPage}
+                        totalItems={filteredProjects.length}
+                        itemsPerPage={itemsPerPage}
+                        onPageChange={setCurrentPage}
+                        onItemsPerPageChange={(e) => setItemsPerPage(Number(e.target.value))}
+                    />
+                </>
             ) : (
                 <div className="text-center py-20 px-4 bg-white border border-slate-200 rounded-xl">
                     <h3 className="text-xl font-semibold text-slate-700">ไม่พบผลลัพธ์โครงการ</h3>

@@ -25,7 +25,42 @@ const initialProjects: Project[] = [
   { id: 'proj2', name: 'ออกแบบบรรจุภัณฑ์ใหม่', description: 'ออกแบบแพคเกจจิ้งสำหรับสินค้าส่งออก', entrepreneur: 'หจก. สมใจการเกษตร', status: 'In Progress', category: 'Academic Services', projectLeader: 'ผศ.ดร.มานี รักไทย', budget: 30000, fiscalYear: '2567' },
   { id: 'proj3', name: 'วิเคราะห์ข้อมูลการตลาด', description: 'วิเคราะห์ข้อมูลลูกค้าเพื่อวางแผนการตลาด', entrepreneur: 'บริษัท เอ บี ซี จำกัด', status: 'Completed', category: 'Consulting', outcome: 'ค้นพบกลุ่มลูกค้าใหม่ในตลาดออนไลน์ และสร้างแคมเปญที่เพิ่มยอดขาย 15%', projectLeader: 'ดร.พิชัย จินดา', coProjectLeader: 'นางสาวสุดา ศรีงาม', budget: 15000, fiscalYear: '2566' },
   { id: 'proj4', name: 'ทดสอบคุณภาพผลิตภัณฑ์อาหาร', description: 'บริการทดสอบและรับรองคุณภาพอาหาร', entrepreneur: 'หจก. สมใจการเกษตร', status: 'Completed', category: 'Biz-Lab', outcome: 'ผลิตภัณฑ์ผ่านการรับรองมาตรฐาน อย. และ GMP พร้อมสำหรับวางจำหน่ายในห้างสรรพสินค้า', projectLeader: 'รศ.ดร.สุพัตรา มีลาภ', budget: 20000, fiscalYear: '2566' },
+
 ];
+
+// Helper to generate mock projects
+const generateMockProjects = (count: number): Project[] => {
+  const statuses: Project['status'][] = ['Completed', 'In Progress', 'Planned'];
+  const categories: Project['category'][] = ['Research', 'Consulting', 'Academic Services', 'Biz-Lab'];
+  const years = ['2565', '2566', '2567'];
+  const entrepreneursList = initialEntrepreneurs.map(e => e.name);
+  const leaders = ['ดร.สมชาย ใจดี', 'ผศ.ดร.มานี รักไทย', 'ดร.พิชัย จินดา', 'รศ.ดร.สุพัตรา มีลาภ', 'อ.วิชัย เก่งกาจ'];
+
+  return Array.from({ length: count }).map((_, i) => {
+    const status = statuses[Math.floor(Math.random() * statuses.length)];
+    const category = categories[Math.floor(Math.random() * categories.length)];
+    const fiscalYear = years[Math.floor(Math.random() * years.length)];
+    const budget = Math.floor(Math.random() * (2000000 - 50000 + 1)) + 50000; // 50k - 2M
+    const entrepreneur = entrepreneursList[Math.floor(Math.random() * entrepreneursList.length)];
+    const leader = leaders[Math.floor(Math.random() * leaders.length)];
+
+    return {
+      id: `mock-proj-${i + 1}`,
+      name: `โครงการตัวอย่าง ${category} ${i + 1}`,
+      description: `รายละเอียดจำลองสำหรับโครงการที่ ${i + 1} เพื่อทดสอบการแสดงผลกราฟและรายการ`,
+      entrepreneur: entrepreneur,
+      status: status,
+      category: category,
+      projectLeader: leader,
+      budget: budget,
+      fiscalYear: fiscalYear,
+      outcome: status === 'Completed' ? 'ผลลัพธ์โครงการจำลองที่สำเร็จแล้ว' : undefined,
+    };
+  });
+};
+
+// Combine initial with mock data
+const allProjects = [...initialProjects, ...generateMockProjects(30)];
 
 const initialCourses: Course[] = [
   { id: 'crs1', title: 'การตลาดดิจิทัล 101', description: 'พื้นฐานการตลาดออนไลน์สำหรับ SME', duration: '3 วัน', instructor: 'อ.วิชัย ประเสริฐ' },
@@ -36,6 +71,62 @@ const initialConsultants: Consultant[] = [
   { id: 'con1', name: 'ดร.สมเกียรติ ชาญชัย', expertise: ['การตลาด', 'การสร้างแบรนด์'], contact: 'somkiat.c@consult.co' },
   { id: 'con2', name: 'คุณพรทิพย์ วงศ์ใหญ่', expertise: ['การเงิน', 'การลงทุน', 'ภาษี'], contact: 'porntip.w@consult.co' },
 ];
+
+// Helper to generate mock courses
+const generateMockCourses = (count: number): Course[] => {
+  const titles = [
+    'การตลาดดิจิทัลขั้นสูง', 'เทคนิคการเจรจาต่อรองทางธุรกิจ', 'การวางแผนภาษีสำหรับ SME',
+    'การจัดการโลจิสติกส์ยุคใหม่', 'การสร้างแบรนด์ให้ยั่งยืน', 'การเขียนแผนธุรกิจฉบับมืออาชีพ',
+    'นวัตกรรมบรรจุภัณฑ์', 'การจัดการทรัพยากรบุคคล', 'กฎหมายแรงงานที่ควรรู้',
+    'เทคนิคการถ่ายภาพสินค้า', 'การทำบัญชีเบื้องต้น', 'กลยุทธ์การตั้งราคา'
+  ];
+  const instructors = [
+    'อ.วิชัย ประเสริฐ', 'อ.สุดา ศรีงาม', 'ดร.สมชาย ใจดี', 'ผศ.ดร.มานี รักไทย', 'คุณธนินท์ เลิศสิน'
+  ];
+  const durations = ['1 วัน', '2 วัน', '3 วัน', '5 วัน'];
+
+  return Array.from({ length: count }).map((_, i) => ({
+    id: `mock-crs-${i + 1}`,
+    title: titles[Math.floor(Math.random() * titles.length)] + ` (รุ่นที่ ${Math.floor(Math.random() * 5) + 1})`,
+    description: `หลักสูตรอบรมเชิงปฏิบัติการเพื่อพัฒนาทักษะด้าน${titles[Math.floor(Math.random() * titles.length)].split(' ')[0]} สำหรับผู้ประกอบการ`,
+    duration: durations[Math.floor(Math.random() * durations.length)],
+    instructor: instructors[Math.floor(Math.random() * instructors.length)],
+    contactPhone: '02-123-4567',
+    contactEmail: 'training@bizdev.co.th'
+  }));
+};
+
+const allCourses = [...initialCourses, ...generateMockCourses(15)];
+
+// Helper to generate mock consultants
+const generateMockConsultants = (count: number): Consultant[] => {
+  const firstNames = ['สมยศ', 'กานดา', 'วิชัย', 'สุรีย์', 'ณัฐพล', 'พิมล', 'ธนากร', 'จิราพร'];
+  const lastNames = ['ใจมั่น', 'มีทรัพย์', 'เก่งงาน', 'สุขสม', 'เจริญรุ่งเรือง', 'ทรัพย์ทวี'];
+  const expertiseList = [
+    'การตลาด', 'การเงิน', 'กฎหมายธุรกิจ', 'โลจิสติกส์', 'การผลิต',
+    'ไอที/ดิจิทัล', 'ทรัพยากรบุคคล', 'การส่งออก', 'มาตรฐานคุณภาพ'
+  ];
+
+  return Array.from({ length: count }).map((_, i) => {
+    const expertises: string[] = [];
+    const expertiseCount = Math.floor(Math.random() * 3) + 1; // 1-3 skills
+    for (let j = 0; j < expertiseCount; j++) {
+      const skill = expertiseList[Math.floor(Math.random() * expertiseList.length)];
+      if (!expertises.includes(skill)) expertises.push(skill);
+    }
+
+    return {
+      id: `mock-con-${i + 1}`,
+      name: `อ.${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`,
+      expertise: expertises,
+      contact: `consultant${i + 1}@bizdev.co.th`,
+      phone: `08${Math.floor(Math.random() * 90000000 + 10000000)}`,
+      workplace: 'อิสระ'
+    };
+  });
+};
+
+const allConsultants = [...initialConsultants, ...generateMockConsultants(15)];
 
 const initialUsers: UserAccount[] = [
   { id: 'user-admin-01', username: 'admin', email: 'admin@example.com', role: 'admin', isActive: true },
@@ -85,9 +176,9 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const [entrepreneurs, setEntrepreneurs] = useState<Entrepreneur[]>(initialEntrepreneurs);
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
-  const [courses, setCourses] = useState<Course[]>(initialCourses);
-  const [consultants, setConsultants] = useState<Consultant[]>(initialConsultants);
+  const [projects, setProjects] = useState<Project[]>(allProjects);
+  const [courses, setCourses] = useState<Course[]>(allCourses);
+  const [consultants, setConsultants] = useState<Consultant[]>(allConsultants);
   const [users, setUsers] = useState<UserAccount[]>(initialUsers);
   const [establishmentTypes, setEstablishmentTypes] = useState<string[]>(initialEstablishmentTypes);
   const [businessCategories, setBusinessCategories] = useState<string[]>(initialBusinessCategories);
