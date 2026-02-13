@@ -168,8 +168,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
   return (
     <div className="space-y-8">
-      <h2 className="text-3xl font-medium font-title text-slate-900">ตั้งค่าระบบ</h2>
-
       <div>
         <div className="border-b border-slate-200">
           <nav className="-mb-px flex space-x-6" aria-label="Tabs">

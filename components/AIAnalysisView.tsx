@@ -72,13 +72,6 @@ const AIAnalysisView: React.FC<AIAnalysisViewProps> = ({ consultants, entreprene
 
     return (
         <div className="space-y-8 animate-fade-in">
-            <h2 className="text-3xl font-medium font-title text-slate-900 border-b border-slate-200 pb-4">
-                <span className="flex items-center gap-3">
-                    <SparklesIcon className="w-8 h-8 text-blue-600" />
-                    ระบบ AI วิเคราะห์ปัญหาธุรกิจ
-                </span>
-            </h2>
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Input Section */}
                 <div className="space-y-6">

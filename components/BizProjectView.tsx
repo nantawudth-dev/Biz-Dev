@@ -283,10 +283,6 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
     // View: Project List (Default)
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <h2 className="text-3xl font-medium font-title text-slate-900">ผลลัพธ์โครงการ</h2>
-            </div>
-
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
                 <div className="w-full md:w-auto md:flex-1 relative">
                     <input

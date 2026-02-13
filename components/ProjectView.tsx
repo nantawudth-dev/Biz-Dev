@@ -369,20 +369,6 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
   return (
     <div className="space-y-6 animate-fade-in">
 
-
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h2 className="text-3xl font-medium font-title text-slate-900">โครงการทั้งหมด</h2>
-        {(userRole === 'admin' || userRole === 'officer') && (
-          <button
-            onClick={handleOpenAdd}
-            className="flex-shrink-0 flex items-center justify-center bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-5 py-2.5 font-semibold rounded-lg shadow-lg hover:opacity-90 transition-all duration-300 transform hover:scale-105"
-          >
-            <PlusIcon className="w-5 h-5 mr-2" />
-            <span>เพิ่มโครงการ</span>
-          </button>
-        )}
-      </div>
-
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
         <div className="w-full md:w-auto md:flex-1 relative">
           <input
@@ -765,6 +751,40 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
           </div>
         </div>
       </Modal>
+
+      {/* Quick Menu Card */}
+      {(userRole === 'admin' || userRole === 'officer') && (
+        <div className="mt-8">
+          <button
+            onClick={handleOpenAdd}
+            className="w-full group relative overflow-hidden bg-gradient-to-r from-green-50 via-cyan-50 to-blue-50 hover:from-green-100 hover:via-cyan-100 hover:to-blue-100 border-2 border-green-200/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] p-6"
+          >
+            {/* Background Image */}
+            <div className="absolute inset-0 opacity-25 group-hover:opacity-30 transition-opacity">
+              <img
+                src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&auto=format&fit=crop"
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            {/* Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 via-cyan-400/20 to-blue-400/20"></div>
+
+            {/* Content */}
+            <div className="relative flex items-center gap-6">
+              <div className="bg-gradient-to-br from-green-500 to-cyan-500 p-4 rounded-xl group-hover:from-green-600 group-hover:to-cyan-600 transition-all shadow-md">
+                <BriefcaseIcon className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-left flex-1">
+                <h3 className="text-xl font-bold mb-1 text-slate-800">เพิ่มโครงการ</h3>
+                <p className="text-slate-600 text-sm font-normal">สร้างโครงการใหม่และกำหนดรายละเอียด</p>
+              </div>
+              <PlusIcon className="w-6 h-6 text-green-600 opacity-80 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </button>
+        </div>
+      )}
 
     </div>
   );

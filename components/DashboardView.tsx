@@ -11,21 +11,23 @@ interface DashboardViewProps {
     consultants: Consultant[];
 }
 
-const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number | string; gradient: string }> = ({ icon, label, value, gradient }) => (
-    <div className={`relative overflow-hidden rounded-xl shadow-lg p-6 flex items-center gap-6 ${gradient} text-white`}>
-        <div className={`relative z-10 p-4 rounded-full bg-white/20 backdrop-blur-sm`}>
-            {React.cloneElement(icon as React.ReactElement, { className: "w-8 h-8 text-white" })}
+const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number | string; gradient: string }> = ({ icon, label, value, gradient }) => {
+    return (
+        <div className={`relative overflow-hidden rounded-xl shadow-lg p-6 flex items-center gap-6 ${gradient} text-white`}>
+            <div className={`relative z-10 p-4 rounded-full bg-white/20 backdrop-blur-sm`}>
+                {React.cloneElement(icon as React.ReactElement, { className: `w-8 h-8 text-white` })}
+            </div>
+            <div className="relative z-10">
+                <p className={`text-4xl font-bold text-white`}>{value}</p>
+                <p className={`text-base font-semibold text-white opacity-90`}>{label}</p>
+            </div>
+            {/* Faded Background Icon */}
+            <div className="absolute -right-6 -bottom-6 opacity-10 transform rotate-12 pointer-events-none">
+                {React.cloneElement(icon as React.ReactElement, { className: `w-40 h-40 text-white` })}
+            </div>
         </div>
-        <div className="relative z-10">
-            <p className="text-4xl font-bold">{value}</p>
-            <p className="text-base font-semibold opacity-90">{label}</p>
-        </div>
-        {/* Faded Background Icon */}
-        <div className="absolute -right-6 -bottom-6 opacity-10 transform rotate-12 pointer-events-none">
-            {React.cloneElement(icon as React.ReactElement, { className: "w-40 h-40 text-white" })}
-        </div>
-    </div>
-);
+    );
+};
 
 const DashboardView: React.FC<DashboardViewProps> = ({ entrepreneurs, projects, courses, consultants }) => {
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -169,8 +171,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ entrepreneurs, projects, 
 
     return (
         <div className="space-y-8">
-            <h2 className="text-3xl font-medium font-title text-slate-900">ภาพรวมระบบ</h2>
-
             {/* Stat Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard

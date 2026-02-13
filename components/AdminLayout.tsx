@@ -167,11 +167,40 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
                 onRequestLogout={() => setIsLogoutModalOpen(true)}
             />
             <main className="flex-1 md:ml-64 transition-all duration-300">
-                <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-30">
-                    <button onClick={() => setIsSidebarOpen(true)} className="p-1 -ml-1 text-slate-700 hover:text-blue-600">
-                        <Bars3Icon className="w-7 h-7" />
-                    </button>
-                    <h1 className="text-lg font-medium font-title text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-500">BIZ System</h1>
+                <header className="flex items-center justify-between p-4 md:px-8 border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-30">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-1 -ml-1 text-slate-700 hover:text-blue-600">
+                            <Bars3Icon className="w-7 h-7" />
+                        </button>
+                        <h1 className="text-xl md:text-2xl font-medium font-title text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-500">
+                            {activeView === ViewType.Dashboard && 'ภาพรวม'}
+                            {activeView === ViewType.Entrepreneurs && 'ผู้ประกอบการ'}
+                            {activeView === ViewType.Projects && 'โครงการทั้งหมด'}
+                            {activeView === ViewType.BizProjects && 'ผลลัพธ์โครงการ'}
+                            {activeView === ViewType.Courses && 'หลักสูตรอบรม'}
+                            {activeView === ViewType.Consultants && 'ผู้เชี่ยวชาญ'}
+                            {activeView === ViewType.AIAnalysis && 'AI Analysis'}
+                            {activeView === ViewType.Settings && 'ตั้งค่า'}
+                        </h1>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="text-right hidden sm:block">
+                            <p className="text-sm font-medium text-slate-700">{currentUser.username}</p>
+                            <p className="text-xs text-slate-500">
+                                {currentUser.role === 'admin' && 'ผู้ดูแลระบบ'}
+                                {currentUser.role === 'officer' && 'เจ้าหน้าที่'}
+                                {currentUser.role === 'user' && 'ผู้ใช้งานทั่วไป'}
+                            </p>
+                        </div>
+
+                        {/* User Avatar with Role-based Gradient - Rounded Square */}
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm shadow-md ${currentUser.role === 'admin' ? 'bg-gradient-to-br from-orange-200 to-orange-300 text-orange-800' :
+                                currentUser.role === 'officer' ? 'bg-gradient-to-br from-blue-200 to-blue-300 text-blue-800' :
+                                    'bg-gradient-to-br from-green-200 to-green-300 text-green-800'
+                            }`}>
+                            {currentUser.username.charAt(0).toUpperCase()}
+                        </div>
+                    </div>
                 </header>
                 <div className="p-4 sm:p-6 md:p-8">
                     {renderView()}
