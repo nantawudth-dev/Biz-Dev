@@ -1,239 +1,231 @@
 
-import React, { useState } from 'react';
-import { Entrepreneur, Project, Course, Consultant, User, UserAccount, ProjectCategory } from './types';
-import AdminLayout from './components/AdminLayout';
+import React, { useState, useEffect } from 'react';
+import { Role, ViewType } from './types';
 import LoginPage from './components/LoginPage';
-import { useNotification } from './contexts/NotificationContext';
+import { useNotification, NotificationProvider } from './contexts/NotificationContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import Modal from './components/Modal';
+import AccessDeniedModal from './components/AccessDeniedModal';
+import { ExclamationTriangleIcon, CheckCircleIcon } from './components/icons';
 
-// Initial mock data
-const initialEntrepreneurs: Entrepreneur[] = [
-  { id: 'ent1', name: 'สมชาย ใจดี', businessName: 'Siam Innovations', contact: '081-234-5678', establishmentType: 'ภาคเอกชน', businessCategory: 'การบริหารและบริการสนับสนุน', address: '123 ถนนสุขุมวิท, เขตวัฒนา, กรุงเทพฯ 10110', lineId: 'siam.innovations', facebook: 'facebook.com/SiamInnovations' },
-  { id: 'ent2', name: 'มานี รักไทย', businessName: 'Tasty Thai Foods', contact: '082-345-6789', establishmentType: 'ภาคเอกชน', businessCategory: 'ที่พักและบริการด้านอาหาร', address: '456 ถนนสีลม, เขตบางรัก, กรุงเทพฯ 10500', lineId: 'tasty.thai', facebook: 'facebook.com/TastyThaiFoods' },
-  { id: 'ent3', name: 'พิชัย จินดา', businessName: 'เชียงใหม่ ออร์แกนิค ฟาร์ม', contact: '083-111-2222', establishmentType: 'วิสาหกิจ', businessCategory: 'เกษตรกรรม การป่าไม้ และการประมง', address: '101 หมู่ 5 ต.สุเทพ อ.เมืองเชียงใหม่ จ.เชียงใหม่ 50200', lineId: 'cm.organicfarm', facebook: 'facebook.com/ChiangmaiOrganicFarm' },
-  { id: 'ent4', name: 'สุพัตรา มีลาภ', businessName: 'ภูเก็ต พาราไดซ์ รีสอร์ท', contact: '084-222-3333', establishmentType: 'ภาคเอกชน', businessCategory: 'ที่พักและบริการด้านอาหาร', address: '25/5 หาดป่าตอง อ.กะทู้ จ.ภูเก็ต 83150', lineId: 'phuket.paradise', facebook: 'facebook.com/PhuketParadiseResort' },
-  { id: 'ent5', name: 'อานนท์ วงศ์สว่าง', businessName: 'Beauty Bliss Spa', contact: '085-333-4444', establishmentType: 'ภาคเอกชน', businessCategory: 'การบริการอื่น ๆ', address: '789 ถนนนิมมานเหมินท์, อ.เมือง, จ.เชียงใหม่ 50200', lineId: 'beautybliss.spa', facebook: 'facebook.com/BeautyBlissSpa' },
-  { id: 'ent6', name: 'กนกวรรณ แซ่ตั้ง', businessName: 'Chic & Cheap Fashion', contact: '086-444-5555', establishmentType: 'ผู้ประกอบการ', businessCategory: 'การผลิตสินค้า', address: 'สยามสแควร์ ซอย 5, เขตปทุมวัน, กรุงเทพฯ 10330', lineId: 'chiccheap.fashion', facebook: 'facebook.com/ChicCheapFashion' },
-  { id: 'ent7', name: 'ธีรวัฒน์ เกียรติไพศาล', businessName: 'FastFlow Logistics', contact: '087-555-6666', establishmentType: 'ภาคเอกชน', businessCategory: 'การขนส่งและสถานที่เก็บสินค้า', address: 'คลังสินค้า TPARK, อ.วังน้อย, จ.พระนครศรีอยุธยา 13170', lineId: 'fastflow.logistics', facebook: 'facebook.com/FastFlowLogistics' },
-  { id: 'ent8', name: 'ปรียานุช สุขใจ', businessName: 'Home Sweet Home Realty', contact: '088-666-7777', establishmentType: 'ภาคเอกชน', businessCategory: 'เกี่ยวกับอสังหาริมทรัพย์', address: 'อาคารเอ็มไพร์ทาวเวอร์ ชั้น 45, เขตสาทร, กรุงเทพฯ 10120', lineId: 'homesweethome.realty', facebook: 'facebook.com/HomeSweetHomeRealty' },
-  { id: 'ent9', name: 'วรวุฒิ คงมั่น', businessName: 'CodeCraft Solutions', contact: '089-777-8888', establishmentType: 'ภาคเอกชน', businessCategory: 'การบริหารและบริการสนับสนุน', address: 'อาคารไซเบอร์เวิลด์, เขตห้วยขวาง, กรุงเทพฯ 10310', lineId: 'codecraft.th', facebook: 'facebook.com/CodeCraftSolutions' },
-  { id: 'ent10', name: 'นันทิดา พรหมสุวรรณ', businessName: 'บ้านกาแฟ ขอนแก่น', contact: '091-888-9999', establishmentType: 'ผู้ประกอบการ', businessCategory: 'ที่พักและบริการด้านอาหาร', address: 'ถนนหน้าเมือง, อ.เมือง, จ.ขอนแก่น 40000', lineId: 'baankafee.kk', facebook: 'facebook.com/BaanKafeeKhonKaen' },
-];
+import DashboardView from './components/DashboardView';
+import EntrepreneurView from './components/EntrepreneurView';
+import ProjectView from './components/ProjectView';
+import BizProjectView from './components/BizProjectView';
+import CourseView from './components/CourseView';
+import ConsultantView from './components/ConsultantView';
+import UserManagementView from './components/UserManagementView';
+import SettingsView from './components/SettingsView';
+import AIAnalysisView from './components/AIAnalysisView';
 
-
-const initialProjects: Project[] = [
-  { id: 'proj1', name: 'พัฒนาระบบ CRM', description: 'พัฒนาและติดตั้งระบบ CRM สำหรับจัดการลูกค้า', entrepreneur: 'บริษัท เอ บี ซี จำกัด', status: 'Completed', category: 'Research', outcome: 'เพิ่มประสิทธิภาพการจัดการลูกค้าสัมพันธ์ได้ 30% และลดเวลาในการติดตามงาน', projectLeader: 'ดร.สมชาย ใจดี', coProjectLeader: 'นายวิชัย เก่งกาจ', budget: 50000, fiscalYear: '2567' },
-  { id: 'proj2', name: 'ออกแบบบรรจุภัณฑ์ใหม่', description: 'ออกแบบแพคเกจจิ้งสำหรับสินค้าส่งออก', entrepreneur: 'หจก. สมใจการเกษตร', status: 'In Progress', category: 'Academic Services', projectLeader: 'ผศ.ดร.มานี รักไทย', budget: 30000, fiscalYear: '2567' },
-  { id: 'proj3', name: 'วิเคราะห์ข้อมูลการตลาด', description: 'วิเคราะห์ข้อมูลลูกค้าเพื่อวางแผนการตลาด', entrepreneur: 'บริษัท เอ บี ซี จำกัด', status: 'Completed', category: 'Consulting', outcome: 'ค้นพบกลุ่มลูกค้าใหม่ในตลาดออนไลน์ และสร้างแคมเปญที่เพิ่มยอดขาย 15%', projectLeader: 'ดร.พิชัย จินดา', coProjectLeader: 'นางสาวสุดา ศรีงาม', budget: 15000, fiscalYear: '2566' },
-  { id: 'proj4', name: 'ทดสอบคุณภาพผลิตภัณฑ์อาหาร', description: 'บริการทดสอบและรับรองคุณภาพอาหาร', entrepreneur: 'หจก. สมใจการเกษตร', status: 'Completed', category: 'Biz-Lab', outcome: 'ผลิตภัณฑ์ผ่านการรับรองมาตรฐาน อย. และ GMP พร้อมสำหรับวางจำหน่ายในห้างสรรพสินค้า', projectLeader: 'รศ.ดร.สุพัตรา มีลาภ', budget: 20000, fiscalYear: '2566' },
-
-];
-
-// Helper to generate mock projects
-const generateMockProjects = (count: number): Project[] => {
-  const statuses: Project['status'][] = ['Completed', 'In Progress', 'Planned'];
-  const categories: Project['category'][] = ['Research', 'Consulting', 'Academic Services', 'Biz-Lab'];
-  const years = ['2565', '2566', '2567'];
-  const entrepreneursList = initialEntrepreneurs.map(e => e.name);
-  const leaders = ['ดร.สมชาย ใจดี', 'ผศ.ดร.มานี รักไทย', 'ดร.พิชัย จินดา', 'รศ.ดร.สุพัตรา มีลาภ', 'อ.วิชัย เก่งกาจ'];
-
-  return Array.from({ length: count }).map((_, i) => {
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-    const category = categories[Math.floor(Math.random() * categories.length)];
-    const fiscalYear = years[Math.floor(Math.random() * years.length)];
-    const budget = Math.floor(Math.random() * (2000000 - 50000 + 1)) + 50000; // 50k - 2M
-    const entrepreneur = entrepreneursList[Math.floor(Math.random() * entrepreneursList.length)];
-    const leader = leaders[Math.floor(Math.random() * leaders.length)];
-
-    return {
-      id: `mock-proj-${i + 1}`,
-      name: `โครงการตัวอย่าง ${category} ${i + 1}`,
-      description: `รายละเอียดจำลองสำหรับโครงการที่ ${i + 1} เพื่อทดสอบการแสดงผลกราฟและรายการ`,
-      entrepreneur: entrepreneur,
-      status: status,
-      category: category,
-      projectLeader: leader,
-      budget: budget,
-      fiscalYear: fiscalYear,
-      outcome: status === 'Completed' ? 'ผลลัพธ์โครงการจำลองที่สำเร็จแล้ว' : undefined,
-    };
-  });
-};
-
-// Combine initial with mock data
-const allProjects = [...initialProjects, ...generateMockProjects(30)];
-
-const initialCourses: Course[] = [
-  { id: 'crs1', title: 'การตลาดดิจิทัล 101', description: 'พื้นฐานการตลาดออนไลน์สำหรับ SME', duration: '3 วัน', instructor: 'อ.วิชัย ประเสริฐ' },
-  { id: 'crs2', title: 'การจัดการการเงินเบื้องต้น', description: 'เรียนรู้การวางแผนการเงินสำหรับธุรกิจ', duration: '2 วัน', instructor: 'อ.สุดา ศรีงาม' },
-];
-
-const initialConsultants: Consultant[] = [
-  { id: 'con1', name: 'ดร.สมเกียรติ ชาญชัย', expertise: ['การตลาด', 'การสร้างแบรนด์'], contact: 'somkiat.c@consult.co' },
-  { id: 'con2', name: 'คุณพรทิพย์ วงศ์ใหญ่', expertise: ['การเงิน', 'การลงทุน', 'ภาษี'], contact: 'porntip.w@consult.co' },
-];
-
-// Helper to generate mock courses
-const generateMockCourses = (count: number): Course[] => {
-  const titles = [
-    'การตลาดดิจิทัลขั้นสูง', 'เทคนิคการเจรจาต่อรองทางธุรกิจ', 'การวางแผนภาษีสำหรับ SME',
-    'การจัดการโลจิสติกส์ยุคใหม่', 'การสร้างแบรนด์ให้ยั่งยืน', 'การเขียนแผนธุรกิจฉบับมืออาชีพ',
-    'นวัตกรรมบรรจุภัณฑ์', 'การจัดการทรัพยากรบุคคล', 'กฎหมายแรงงานที่ควรรู้',
-    'เทคนิคการถ่ายภาพสินค้า', 'การทำบัญชีเบื้องต้น', 'กลยุทธ์การตั้งราคา'
-  ];
-  const instructors = [
-    'อ.วิชัย ประเสริฐ', 'อ.สุดา ศรีงาม', 'ดร.สมชาย ใจดี', 'ผศ.ดร.มานี รักไทย', 'คุณธนินท์ เลิศสิน'
-  ];
-  const durations = ['1 วัน', '2 วัน', '3 วัน', '5 วัน'];
-
-  return Array.from({ length: count }).map((_, i) => ({
-    id: `mock-crs-${i + 1}`,
-    title: titles[Math.floor(Math.random() * titles.length)] + ` (รุ่นที่ ${Math.floor(Math.random() * 5) + 1})`,
-    description: `หลักสูตรอบรมเชิงปฏิบัติการเพื่อพัฒนาทักษะด้าน${titles[Math.floor(Math.random() * titles.length)].split(' ')[0]} สำหรับผู้ประกอบการ`,
-    duration: durations[Math.floor(Math.random() * durations.length)],
-    instructor: instructors[Math.floor(Math.random() * instructors.length)],
-    contactPhone: '02-123-4567',
-    contactEmail: 'training@bizdev.co.th'
-  }));
-};
-
-const allCourses = [...initialCourses, ...generateMockCourses(15)];
-
-// Helper to generate mock consultants
-const generateMockConsultants = (count: number): Consultant[] => {
-  const firstNames = ['สมยศ', 'กานดา', 'วิชัย', 'สุรีย์', 'ณัฐพล', 'พิมล', 'ธนากร', 'จิราพร'];
-  const lastNames = ['ใจมั่น', 'มีทรัพย์', 'เก่งงาน', 'สุขสม', 'เจริญรุ่งเรือง', 'ทรัพย์ทวี'];
-  const expertiseList = [
-    'การตลาด', 'การเงิน', 'กฎหมายธุรกิจ', 'โลจิสติกส์', 'การผลิต',
-    'ไอที/ดิจิทัล', 'ทรัพยากรบุคคล', 'การส่งออก', 'มาตรฐานคุณภาพ'
-  ];
-
-  return Array.from({ length: count }).map((_, i) => {
-    const expertises: string[] = [];
-    const expertiseCount = Math.floor(Math.random() * 3) + 1; // 1-3 skills
-    for (let j = 0; j < expertiseCount; j++) {
-      const skill = expertiseList[Math.floor(Math.random() * expertiseList.length)];
-      if (!expertises.includes(skill)) expertises.push(skill);
-    }
-
-    return {
-      id: `mock-con-${i + 1}`,
-      name: `อ.${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`,
-      expertise: expertises,
-      contact: `consultant${i + 1}@bizdev.co.th`,
-      phone: `08${Math.floor(Math.random() * 90000000 + 10000000)}`,
-      workplace: 'อิสระ'
-    };
-  });
-};
-
-const allConsultants = [...initialConsultants, ...generateMockConsultants(15)];
-
-const initialUsers: UserAccount[] = [
-  { id: 'user-admin-01', username: 'admin', email: 'admin@example.com', role: 'admin', isActive: true },
-  { id: 'user-officer-01', username: 'janjira', email: 'janjira@example.com', role: 'officer', isActive: true },
-  { id: 'user-basic-01', username: 'somchai', email: 'somchai@example.com', role: 'user', isActive: true },
-];
-
-const initialEstablishmentTypes: string[] = [
-  'ภาครัฐ',
-  'ภาคเอกชน',
-  'วิสาหกิจ',
-  'ผู้ประกอบการ'
-];
-
-const initialBusinessCategories: string[] = [
-  'การขนส่งและสถานที่เก็บสินค้า',
-  'เกษตรกรรม การป่าไม้ และการประมง',
-  'การผลิตสินค้า',
-  'การก่อสร้าง',
-  'พลังงาน',
-  'ที่พักและบริการด้านอาหาร',
-  'เกี่ยวกับอสังหาริมทรัพย์',
-  'การบริหารและบริการสนับสนุน',
-  'การศึกษา',
-  'การบริการอื่น ๆ'
-];
-
-export interface ProjectCategorySetting {
-  key: ProjectCategory;
-  label: string;
-}
-
-const initialProjectCategories: ProjectCategorySetting[] = [
-  { key: 'Consulting', label: 'งานที่ปรึกษา' },
-  { key: 'Research', label: 'งานวิจัย' },
-  { key: 'Academic Services', label: 'งานบริการวิชาการ' },
-  { key: 'Biz-Lab', label: 'งานโครงการ Biz-Lab' }
-];
-
-const initialFiscalYears: string[] = [
-  '2567',
-  '2566',
-  '2565'
-];
-
-const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-
-  const [entrepreneurs, setEntrepreneurs] = useState<Entrepreneur[]>(initialEntrepreneurs);
-  const [projects, setProjects] = useState<Project[]>(allProjects);
-  const [courses, setCourses] = useState<Course[]>(allCourses);
-  const [consultants, setConsultants] = useState<Consultant[]>(allConsultants);
-  const [users, setUsers] = useState<UserAccount[]>(initialUsers);
-  const [establishmentTypes, setEstablishmentTypes] = useState<string[]>(initialEstablishmentTypes);
-  const [businessCategories, setBusinessCategories] = useState<string[]>(initialBusinessCategories);
-  const [projectCategories, setProjectCategories] = useState<ProjectCategorySetting[]>(initialProjectCategories);
-  const [fiscalYears, setFiscalYears] = useState<string[]>(initialFiscalYears);
-
+const MainApp = () => {
+  const { user, isLoading: authLoading, logout, isAdmin, isOfficer, isAccessDenied } = useAuth();
   const { showNotification } = useNotification();
 
-  const handleLogin = (user: User) => {
-    setCurrentUser(user);
-    const roleText = {
-      admin: 'ผู้ดูแลระบบ',
-      officer: 'เจ้าหน้าที่',
-      user: 'ผู้ใช้งาน'
-    };
-    // Use a short delay to allow the UI to transition before showing the modal
-    setTimeout(() => {
-      showNotification(`เข้าสู่ระบบสำเร็จในฐานะ ${roleText[user.role]}`, 'success');
-    }, 100);
+  // View management state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeView, setActiveView] = useState<ViewType>(ViewType.Dashboard);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoginSuccessOpen, setIsLoginSuccessOpen] = useState(false);
+  const [loginProgress, setLoginProgress] = useState(0);
+
+  // Role determination based on AuthContext
+  const userRole: Role = isAdmin ? 'admin' : (isOfficer ? 'officer' : 'user');
+  const currentUser = { id: user?.id || '', username: user?.email || 'User', role: userRole };
+
+  // Login Success Modal Logic
+  useEffect(() => {
+    if (user?.id) {
+      const hasShownWelcome = sessionStorage.getItem(`welcome_shown_${user.id}`);
+      if (!hasShownWelcome) {
+        setIsLoginSuccessOpen(true);
+        // Start animation slightly after mount to trigger transition
+        setTimeout(() => setLoginProgress(100), 100);
+
+        sessionStorage.setItem(`welcome_shown_${user.id}`, 'true');
+
+        // Auto close after 2s
+        const timer = setTimeout(() => {
+          setIsLoginSuccessOpen(false);
+          setLoginProgress(0);
+        }, 2000);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [user?.id]);
+
+  const confirmLogout = () => {
+    setIsLogoutModalOpen(true);
   };
 
-  const handleLogout = () => {
-    // Show notification first, then log out when the user closes the modal
-    showNotification('ออกจากระบบสำเร็จ', 'success', () => {
-      setCurrentUser(null);
-    });
+  const performLogout = async () => {
+    setIsLogoutModalOpen(false);
+    await logout();
+    showNotification('ออกจากระบบแล้ว', 'success');
   };
 
-  if (!currentUser) {
-    return <LoginPage onLogin={handleLogin} />;
+  const getHeaderTitle = () => {
+    switch (activeView) {
+      case ViewType.Dashboard: return 'ภาพรวมระบบ';
+      case ViewType.Entrepreneurs: return 'ผู้ประกอบการ';
+      case ViewType.Projects: return 'โครงการ';
+      case ViewType.BizProjects: return 'โครงการ Biz-Lab';
+      case ViewType.Courses: return 'หลักสูตรอบรม';
+      case ViewType.Consultants: return 'ผู้เชี่ยวชาญ';
+      case ViewType.UserManagement: return 'จัดการผู้ใช้งาน';
+      case ViewType.Settings: return 'ตั้งค่าระบบ';
+      case ViewType.AIAnalysis: return 'AI ช่วยวิเคราะห์';
+      default: return '';
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
+        <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+        <p className="mt-4 text-slate-500 font-title animate-pulse">กำลังโหลดข้อมูล...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
+
+  if (isAccessDenied) {
+    return (
+      <>
+        <LoginPage /> {/* Show login background behind modal */}
+        <AccessDeniedModal onLogout={logout} />
+      </>
+    );
   }
 
   return (
-    <AdminLayout
-      currentUser={currentUser}
-      onLogout={handleLogout}
-      entrepreneurs={entrepreneurs}
-      setEntrepreneurs={setEntrepreneurs}
-      projects={projects}
-      setProjects={setProjects}
-      courses={courses}
-      setCourses={setCourses}
-      consultants={consultants}
-      setConsultants={setConsultants}
-      users={users}
-      setUsers={setUsers}
-      establishmentTypes={establishmentTypes}
-      setEstablishmentTypes={setEstablishmentTypes}
-      businessCategories={businessCategories}
-      setBusinessCategories={setBusinessCategories}
-      projectCategories={projectCategories}
-      setProjectCategories={setProjectCategories}
-      fiscalYears={fiscalYears}
-      setFiscalYears={setFiscalYears}
-    />
+    <div className="flex h-screen bg-slate-50 font-body animate-fade-in overflow-hidden">
+      <Sidebar
+        isOpen={isSidebarOpen}
+        activeView={activeView}
+        setActiveView={setActiveView}
+        setIsOpen={setIsSidebarOpen}
+        currentUser={currentUser}
+        onRequestLogout={confirmLogout}
+      />
+
+      <div className="flex-1 flex flex-col overflow-hidden w-full relative md:ml-64">
+        <Header
+          onMenuClick={() => setIsSidebarOpen(true)}
+          user={{ username: user.email || 'User', role: userRole }}
+          onLogout={confirmLogout}
+          title={getHeaderTitle()}
+        />
+
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-4 md:p-6 pb-20 scrollbar-hide">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {activeView === ViewType.Dashboard && (
+              <DashboardView />
+            )}
+            {activeView === ViewType.Entrepreneurs && (
+              <EntrepreneurView />
+            )}
+            {activeView === ViewType.Projects && (
+              <ProjectView />
+            )}
+            {activeView === ViewType.BizProjects && (
+              <BizProjectView />
+            )}
+            {activeView === ViewType.Courses && (
+              <CourseView />
+            )}
+            {activeView === ViewType.Consultants && (
+              <ConsultantView />
+            )}
+            {activeView === ViewType.UserManagement && userRole === 'admin' && (
+              <UserManagementView />
+            )}
+            {activeView === ViewType.AIAnalysis && (userRole === 'admin' || userRole === 'officer') && (
+              <AIAnalysisView />
+            )}
+            {activeView === ViewType.Settings && (
+              <SettingsView />
+            )}
+          </div>
+        </main>
+      </div>
+
+      <Modal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        title=""
+        maxWidth="max-w-sm"
+      >
+        <div className="flex flex-col items-center justify-center p-4 text-center -mt-6">
+          <div className="bg-amber-50 p-4 rounded-full mb-4 animate-bounce shadow-sm">
+            <ExclamationTriangleIcon className="w-12 h-12 text-amber-500" />
+          </div>
+
+          <h2 className="text-xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent mb-2 font-title">
+            ยืนยันการออกจากระบบ
+          </h2>
+          <p className="text-slate-500 mb-8 font-body">คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?</p>
+
+          <div className="flex w-full gap-3">
+            <button
+              onClick={() => setIsLogoutModalOpen(false)}
+              className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-semibold transition-all duration-200 hover:shadow-sm"
+            >
+              ยกเลิก
+            </button>
+            <button
+              onClick={performLogout}
+              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-xl hover:shadow-lg hover:from-red-600 hover:to-pink-700 font-semibold transition-all duration-300 transform hover:-translate-y-0.5"
+            >
+              ยืนยัน
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isLoginSuccessOpen}
+        onClose={() => setIsLoginSuccessOpen(false)}
+        title=""
+        maxWidth="max-w-sm"
+      >
+        <div className="flex flex-col items-center justify-center p-4 text-center -mt-6">
+          <div className="bg-emerald-50 p-4 rounded-full mb-4 animate-bounce shadow-sm">
+            <CheckCircleIcon className="w-12 h-12 text-emerald-500" />
+          </div>
+
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent mb-2 font-title">
+            เข้าสู่ระบบสำเร็จ
+          </h2>
+          <p className="text-slate-500 mb-6 font-body">ยินดีต้อนรับ, <span className="font-semibold text-slate-700">{currentUser.username}</span></p>
+
+          {/* Progress Bar */}
+          <div className="w-full bg-slate-100 rounded-full h-1.5 mb-3 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-emerald-400 to-teal-500 h-1.5 rounded-full transition-all duration-[2000ms] ease-out"
+              style={{ width: `${loginProgress}%` }}
+            ></div>
+          </div>
+          <p className="text-xs text-slate-400">กำลังเข้าสู่หน้าหลัก...</p>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+const App = () => {
+  return (
+    <NotificationProvider>
+      <AuthProvider>
+        <MainApp />
+      </AuthProvider>
+    </NotificationProvider>
   );
 };
 

@@ -40,6 +40,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 const DashboardCharts: React.FC<DashboardChartsProps> = ({ projects }) => {
     // 1. Status Distribution
+    // 1. Status Distribution
     const statusData = [
         { name: 'Completed', value: projects.filter(p => p.status === 'Completed').length },
         { name: 'In Progress', value: projects.filter(p => p.status === 'In Progress').length },
@@ -97,7 +98,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ projects }) => {
                                 ))}
                             </Pie>
                             <Tooltip content={<CustomTooltip />} />
-                            <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                            <Legend verticalAlign="bottom" height={36} iconType="circle" layout="horizontal" align="center" />
                         </PieChart>
                     </ResponsiveContainer>
                     {/* Center Text */}

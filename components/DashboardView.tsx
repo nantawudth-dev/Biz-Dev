@@ -1,16 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Entrepreneur, Project, Course, Consultant } from '../types';
 import { BuildingIcon, BriefcaseIcon, BookOpenIcon, UserGroupIcon, ArrowLeftIcon, CheckCircleIcon, UserCircleIcon, CalendarIcon, EyeIcon, Squares2X2Icon, ListBulletIcon, MagnifyingGlassIcon, FunnelIcon, ChevronDownIcon } from './icons';
+import { useNotification } from '../contexts/NotificationContext';
+import { dataService } from '../services/dataService';
 import Pagination from './Pagination';
 import DashboardCharts from './DashboardCharts';
 
-interface DashboardViewProps {
-    entrepreneurs: Entrepreneur[];
-    projects: Project[];
-    courses: Course[];
-    consultants: Consultant[];
-}
+interface DashboardViewProps { }
 
 const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number | string; gradient: string }> = ({ icon, label, value, gradient }) => {
     return (
@@ -30,7 +27,14 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number |
     );
 };
 
-const DashboardView: React.FC<DashboardViewProps> = ({ entrepreneurs, projects, courses, consultants }) => {
+const DashboardView: React.FC<DashboardViewProps> = () => {
+    const [entrepreneurs, setEntrepreneurs] = useState<Entrepreneur[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [consultants, setConsultants] = useState<Consultant[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const { showNotification } = useNotification();
+
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(6);
@@ -42,8 +46,34 @@ const DashboardView: React.FC<DashboardViewProps> = ({ entrepreneurs, projects, 
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [selectedStatus, setSelectedStatus] = useState<string>('All');
 
+    // Fetch data on mount
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setIsLoading(true);
+                const [entrepreneursData, projectsData, coursesData, consultantsData] = await Promise.all([
+                    dataService.getEntrepreneurs(),
+                    dataService.getProjects(),
+                    dataService.getCourses(),
+                    dataService.getConsultants()
+                ]);
+
+                setEntrepreneurs(entrepreneursData);
+                setProjects(projectsData);
+                setCourses(coursesData);
+                setConsultants(consultantsData);
+            } catch (error) {
+                console.error('Failed to fetch dashboard data:', error);
+                showNotification('ไม่สามารถโหลดข้อมูลแดชบอร์ดได้', 'error');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchData();
+    }, [showNotification]);
+
     // Force card view on mobile
-    React.useEffect(() => {
+    useEffect(() => {
         const handleResize = () => {
             if (window.innerWidth < 768) {
                 setDisplayMode('card');
@@ -74,7 +104,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ entrepreneurs, projects, 
     });
 
     // Reset pagination when filters change
-    React.useEffect(() => {
+    useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm, selectedYear, selectedCategory, selectedStatus]);
 
@@ -116,18 +146,26 @@ const DashboardView: React.FC<DashboardViewProps> = ({ entrepreneurs, projects, 
         }
     };
 
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                <p className="mt-4 text-slate-500 font-title">กำลังโหลดข้อมูล...</p>
+            </div>
+        );
+    }
+
     // If a project is selected, show the detail view
     if (selectedProject) {
         return (
-            <div className="space-y-6">
+            <div className="space-y-6 animate-fade-in">
                 {/* Header with Back Button */}
                 <div className="flex items-center gap-4">
                     <button
                         onClick={handleBackToList}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-md font-semibold"
+                        className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
                     >
-                        <ArrowLeftIcon className="w-5 h-5" />
-                        กลับ
+                        <ArrowLeftIcon className="w-6 h-6" />
                     </button>
                     <div className="flex items-center gap-3">
                         <BriefcaseIcon className="w-8 h-8 text-emerald-600" />
@@ -145,9 +183,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ entrepreneurs, projects, 
                         <div>
                             <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">สถานะ</label>
                             <div className="mt-1">
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">
-                                    <CheckCircleIcon className="w-4 h-4" />
-                                    เสร็จสมบูรณ์
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(selectedProject.status)}`}>
+                                    {getStatusLabel(selectedProject.status)}
                                 </span>
                             </div>
                         </div>
@@ -230,7 +267,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ entrepreneurs, projects, 
     }
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 animate-fade-in">
             {/* Completed Projects Header & Filters */}
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
                 <div className="w-full md:w-auto md:flex-1 relative">
@@ -419,7 +456,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ entrepreneurs, projects, 
                                             {paginatedProjects.map((project) => (
                                                 <tr
                                                     key={project.id}
-                                                    className="hover:bg-slate-50 transition-colors"
+                                                    className="hover:bg-slate-50 transition-colors cursor-pointer"
+                                                    onClick={() => setSelectedProject(project)}
                                                 >
                                                     <td data-label="ชื่อโครงการ" className="px-6 py-4">
                                                         <div className="flex items-center gap-2">

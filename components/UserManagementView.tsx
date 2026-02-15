@@ -1,15 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserAccount, Role } from '../types';
 import Modal from './Modal';
 import { PlusIcon, PencilIcon, TrashIcon, UserCircleIcon, ExclamationTriangleIcon, ChevronDownIcon } from './icons';
 import { useNotification } from '../contexts/NotificationContext';
+import { dataService } from '../services/dataService';
 
-// Props interface
-interface UserManagementViewProps {
-  users: UserAccount[];
-  setUsers: React.Dispatch<React.SetStateAction<UserAccount[]>>;
-}
+// Props interface - Empty now as data is fetched internally
+interface UserManagementViewProps { }
 
 const emptyUserForm: Omit<UserAccount, 'id'> = {
   username: '',
@@ -18,7 +16,10 @@ const emptyUserForm: Omit<UserAccount, 'id'> = {
   isActive: true,
 };
 
-const UserManagementView: React.FC<UserManagementViewProps> = ({ users, setUsers }) => {
+const UserManagementView: React.FC<UserManagementViewProps> = () => {
+  const [users, setUsers] = useState<UserAccount[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
@@ -27,10 +28,28 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, setUsers
 
   const { showNotification } = useNotification();
 
-  const handleOpenAddModal = () => {
-    setEditingUser(null);
-    setFormData(emptyUserForm);
-    setIsFormModalOpen(true);
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const profiles = await dataService.getProfiles();
+      const mappedUsers: UserAccount[] = profiles.map((p: any) => ({
+        id: p.id,
+        username: p.username,
+        email: p.email,
+        role: p.role as Role,
+        isActive: p.is_active
+      }));
+      setUsers(mappedUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      showNotification('ไม่สามารถโหลดข้อมูลผู้ใช้งานได้', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleOpenEditModal = (user: UserAccount) => {
@@ -49,27 +68,69 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, setUsers
     setIsDeleteModalOpen(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.username || !formData.email) return;
 
-    if (editingUser) {
-      // Update user
-      setUsers(users.map(u => u.id === editingUser.id ? { ...formData, id: editingUser.id } as UserAccount : u));
-      showNotification('อัปเดตข้อมูลผู้ใช้สำเร็จ', 'success');
-    } else {
-      // Add new user
-      setUsers([...users, { ...formData, id: `user${Date.now()}` } as UserAccount]);
-      showNotification('เพิ่มผู้ใช้ใหม่สำเร็จ', 'success');
+    try {
+      if (editingUser) {
+        // Update existing user profile
+        const profileUpdates: any = {
+          role: formData.role,
+          is_active: formData.isActive
+        };
+
+        if (editingUser.id) {
+          await dataService.updateProfile(editingUser.id, profileUpdates);
+        }
+
+        setUsers(users.map(u => u.id === editingUser.id ? { ...formData, id: editingUser.id } as UserAccount : u));
+        showNotification('อัปเดตข้อมูลผู้ใช้สำเร็จ', 'success');
+      } else {
+        // Add new user profile
+        const newProfile = await dataService.createProfile({
+          username: formData.username,
+          email: formData.email,
+          role: formData.role,
+          isActive: formData.isActive
+        });
+
+        // Optimistically add to list if successful
+        if (newProfile) {
+          const newUser: UserAccount = {
+            id: newProfile.id,
+            username: newProfile.username,
+            email: newProfile.email,
+            role: newProfile.role,
+            isActive: newProfile.is_active
+          };
+          setUsers([newUser, ...users]);
+          showNotification('เพิ่มผู้ใช้สำเร็จ (ผู้ใช้ต้องทำการลงทะเบียนด้วยอีเมลนี้)', 'success');
+        }
+      }
+      handleCloseModals();
+    } catch (error: any) {
+      console.error('Error saving user:', error);
+      const errorMessage = error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
+      showNotification(`บันทึกไม่สำเร็จ: ${errorMessage}`, 'error');
     }
-    handleCloseModals();
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (deletingUser) {
-      setUsers(users.filter(u => u.id !== deletingUser.id));
-      showNotification('ลบผู้ใช้สำเร็จ', 'delete');
-      handleCloseModals();
+      try {
+        // Remove from profiles
+        if (deletingUser.id) {
+          await dataService.deleteProfile(deletingUser.id);
+        }
+
+        setUsers(users.filter(u => u.id !== deletingUser.id));
+        showNotification('ลบผู้ใช้สำเร็จ', 'delete');
+        handleCloseModals();
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        showNotification('เกิดข้อผิดพลาดในการลบข้อมูล', 'error');
+      }
     }
   };
 
@@ -82,13 +143,29 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, setUsers
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+        <p className="mt-4 text-slate-500 font-title">กำลังโหลดข้อมูล...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-lg">
+    <div className="bg-white border border-slate-200 rounded-xl shadow-lg animate-fade-in">
       <div className="p-5 border-b border-slate-200 flex justify-between items-center">
         <h3 className="text-xl font-medium font-title text-slate-800">รายชื่อผู้ใช้งาน</h3>
-        <button onClick={handleOpenAddModal} className="flex items-center bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-3 py-1.5 text-sm font-semibold rounded-md hover:opacity-90 transition-colors">
-          <PlusIcon className="w-4 h-4 mr-1.5" />
-          เพิ่มผู้ใช้
+        <button
+          onClick={() => {
+            setEditingUser(null);
+            setFormData(emptyUserForm);
+            setIsFormModalOpen(true);
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-all shadow-md font-semibold text-sm"
+        >
+          <PlusIcon className="w-5 h-5" />
+          เพิ่มผู้ใช้งาน
         </button>
       </div>
 
@@ -124,9 +201,15 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, setUsers
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center">
                   <button
-                    onClick={() => {
-                      setUsers(users.map(u => u.id === user.id ? { ...u, isActive: !u.isActive } : u));
-                      showNotification(`${user.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}ผู้ใช้สำเร็จ`, 'success');
+                    onClick={async () => {
+                      try {
+                        await dataService.updateProfile(user.id, { is_active: !user.isActive });
+                        setUsers(users.map(u => u.id === user.id ? { ...u, isActive: !u.isActive } : u));
+                        showNotification(`${user.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}ผู้ใช้สำเร็จ`, 'success');
+                      } catch (error) {
+                        console.error('Error toggling status:', error);
+                        showNotification('เกิดข้อผิดพลาด', 'error');
+                      }
                     }}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${user.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}
                   >
@@ -155,11 +238,11 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, setUsers
             <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อผู้ใช้</label>
             <input
               type="text"
-              placeholder="ชื่อผู้ใช้"
+              placeholder="ชื่อผู้ใช้ (เฉพาะดูข้อมูล)"
               value={formData.username}
               onChange={e => setFormData({ ...formData, username: e.target.value })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
-              required
+              readOnly={!!editingUser} // Allow edit only for new users
+              className={`w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${editingUser ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50 focus:bg-white'}`}
             />
           </div>
           <div>

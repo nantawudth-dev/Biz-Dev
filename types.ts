@@ -19,7 +19,8 @@ export interface Entrepreneur {
   businessCategory: string; // หมวดธุรกิจ
   name: string;         // ชื่อผู้ติดต่อ
   address: string;      // ที่อยู่
-  contact: string;      // เบอร์โทร
+  contact: string;      // เบอร์โทร (Legacy, mapped to phone)
+  phone?: string;       // เบอร์โทร (New field)
   lineId: string;       // Line ID
   facebook: string;     // Facebook
   nickname?: string;    // ชื่อเล่น (Optional)
@@ -27,11 +28,17 @@ export interface Entrepreneur {
 
 export type ProjectCategory = 'Consulting' | 'Research' | 'Academic Services' | 'Biz-Lab';
 
+export interface ProjectCategorySetting {
+  key: ProjectCategory;
+  label: string;
+}
+
 export interface Project {
   id: string;
   name: string;
   description: string;
   entrepreneur: string; // ชื่อผู้ประกอบการ (Text Input)
+  entrepreneurId?: string; // ID for linking with Entrepreneurs table
   status: 'Completed' | 'In Progress' | 'Planned';
   category: ProjectCategory;
   projectLeader: string; // หัวหน้าโครงการ
@@ -55,11 +62,14 @@ export interface Course {
 
 export interface Consultant {
   id: string;
-  name: string;
-  expertise: string[];
-  contact: string;
-  phone?: string;
-  workplace?: string;
+  title: string;
+  firstName: string;
+  lastName: string;
+  expertise: string; // Changed to string (previously string[])
+  phone: string;
+  workplace: string;
+  email?: string;
+  imageUrl?: string;
 }
 
 export enum ViewType {

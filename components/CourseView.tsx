@@ -1,16 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Course, Role } from '../types';
 import Modal from './Modal';
 import { PlusIcon, BookOpenIcon, Squares2X2Icon, ListBulletIcon, MagnifyingGlassIcon, PencilIcon, TrashIcon, ExclamationTriangleIcon, ArrowLeftIcon, EyeIcon, CalendarIcon, PhoneIcon, GlobeAltIcon, EnvelopeIcon } from './icons';
 import { useNotification } from '../contexts/NotificationContext';
+import { useAuth } from '../contexts/AuthContext';
+import { dataService } from '../services/dataService';
 import Pagination from './Pagination';
-
-interface CourseViewProps {
-  userRole: Role;
-  courses: Course[];
-  setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
-}
 
 const emptyCourseForm: Omit<Course, 'id'> & { id?: string } = {
   title: '', description: '', duration: '', instructor: '', syllabusLink: '', contactPhone: '', contactEmail: ''
@@ -106,7 +102,11 @@ const ListView = ({ data, userRole, onView, onEdit, onDelete }: { data: Course[]
         </thead>
         <tbody className="bg-white divide-y divide-slate-200">
           {data.map((course) => (
-            <tr key={course.id} className="hover:bg-slate-50 transition-colors">
+            <tr
+              key={course.id}
+              className="hover:bg-slate-50 transition-colors cursor-pointer"
+              onClick={() => onView(course)}
+            >
               <td data-label="ชื่อหลักสูตร" className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm font-medium text-slate-900">{course.title}</div>
                 {course.contactPhone && <div className="text-xs text-slate-500 mt-1 flex items-center gap-1"><PhoneIcon className="w-3 h-3" /> {course.contactPhone}</div>}
@@ -120,7 +120,13 @@ const ListView = ({ data, userRole, onView, onEdit, onDelete }: { data: Course[]
               </td>
               <td data-label="ลิงก์หลักสูตร" className="px-6 py-4 whitespace-nowrap">
                 {course.syllabusLink ? (
-                  <a href={course.syllabusLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 transition-colors">
+                  <a
+                    href={course.syllabusLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <GlobeAltIcon className="w-4 h-4" />
                     เปิดลิงก์
                   </a>
@@ -137,8 +143,20 @@ const ListView = ({ data, userRole, onView, onEdit, onDelete }: { data: Course[]
                   </button>
                   {(userRole === 'admin' || userRole === 'officer') && (
                     <>
-                      <button onClick={() => onEdit(course)} className="text-slate-400 hover:text-blue-600 transition-colors" title="แก้ไขข้อมูล"><PencilIcon className="w-5 h-5" /></button>
-                      <button onClick={() => onDelete(course)} className="text-slate-400 hover:text-red-600 transition-colors" title="ลบข้อมูล"><TrashIcon className="w-5 h-5" /></button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onEdit(course); }}
+                        className="text-slate-400 hover:text-blue-600 transition-colors"
+                        title="แก้ไขข้อมูล"
+                      >
+                        <PencilIcon className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onDelete(course); }}
+                        className="text-slate-400 hover:text-red-600 transition-colors"
+                        title="ลบข้อมูล"
+                      >
+                        <TrashIcon className="w-5 h-5" />
+                      </button>
                     </>
                   )}
                 </div>
@@ -151,11 +169,36 @@ const ListView = ({ data, userRole, onView, onEdit, onDelete }: { data: Course[]
   </div>
 );
 
-const CourseView: React.FC<CourseViewProps> = ({ userRole, courses, setCourses }) => {
+const CourseView: React.FC = () => { // Removed props
+  const { isAdmin, isOfficer } = useAuth();
+  const userRole: Role = isAdmin ? 'admin' : isOfficer ? 'officer' : 'user';
+
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { showNotification } = useNotification();
+
   const [displayMode, setDisplayMode] = useState<'card' | 'list'>('card');
 
+  // Fetch data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const data = await dataService.getCourses();
+        setCourses(data);
+      } catch (error) {
+        console.error('Failed to fetch course data:', error);
+        showNotification('ไม่สามารถโหลดข้อมูลหลักสูตรได้', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [showNotification]);
+
+
   // Force card view on mobile
-  React.useEffect(() => {
+  useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
         setDisplayMode('card');
@@ -179,7 +222,6 @@ const CourseView: React.FC<CourseViewProps> = ({ userRole, courses, setCourses }
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(6);
 
-  const { showNotification } = useNotification();
 
   const handleOpenView = (course: Course) => { setViewingCourse(course); };
   const handleOpenAdd = () => { setEditingCourse(null); setFormData(emptyCourseForm); setIsFormOpen(true); };
@@ -189,25 +231,40 @@ const CourseView: React.FC<CourseViewProps> = ({ userRole, courses, setCourses }
   const handleBackToList = () => { setIsFormOpen(false); setViewingCourse(null); };
   const handleCloseDeleteModal = () => { setIsDeleteModalOpen(false); };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.instructor) return;
 
-    if (editingCourse) {
-      setCourses(courses.map(c => (c.id === editingCourse.id ? { ...formData, id: c.id } as Course : c)));
-      showNotification('บันทึกข้อมูลหลักสูตรสำเร็จ', 'success');
-    } else {
-      setCourses([...courses, { ...formData, id: `crs${Date.now()}` } as Course]);
-      showNotification('เพิ่มหลักสูตรใหม่สำเร็จ', 'success');
+    try {
+      if (editingCourse) {
+        await dataService.updateCourse(editingCourse.id, formData);
+        setCourses(courses.map(c => (c.id === editingCourse.id ? { ...formData, id: c.id } as Course : c)));
+        showNotification('บันทึกข้อมูลหลักสูตรสำเร็จ', 'success');
+      } else {
+        const newCourse = await dataService.createCourse(formData);
+        if (newCourse) {
+          setCourses([newCourse, ...courses]);
+          showNotification('เพิ่มหลักสูตรใหม่สำเร็จ', 'success');
+        }
+      }
+      handleBackToList();
+    } catch (error) {
+      console.error('Error saving course:', error);
+      showNotification('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
     }
-    handleBackToList();
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (deletingCourse) {
-      setCourses(courses.filter(c => c.id !== deletingCourse.id));
-      showNotification('ลบหลักสูตรสำเร็จ', 'delete');
-      handleCloseDeleteModal();
+      try {
+        await dataService.deleteCourse(deletingCourse.id);
+        setCourses(courses.filter(c => c.id !== deletingCourse.id));
+        showNotification('ลบหลักสูตรสำเร็จ', 'delete');
+        handleCloseDeleteModal();
+      } catch (error) {
+        console.error('Error deleting course:', error);
+        showNotification('เกิดข้อผิดพลาดในการลบข้อมูล', 'error');
+      }
     }
   };
 
@@ -225,6 +282,15 @@ const CourseView: React.FC<CourseViewProps> = ({ userRole, courses, setCourses }
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+        <p className="mt-4 text-slate-500 font-title">กำลังโหลดข้อมูล...</p>
+      </div>
+    );
+  }
 
   // View: Add/Edit Form
   if (isFormOpen) {
@@ -306,10 +372,9 @@ const CourseView: React.FC<CourseViewProps> = ({ userRole, courses, setCourses }
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={handleBackToList}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-md font-semibold"
+            className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
           >
-            <ArrowLeftIcon className="w-5 h-5" />
-            กลับ
+            <ArrowLeftIcon className="w-6 h-6" />
           </button>
           <div className="flex items-center gap-3">
             <BookOpenIcon className="w-8 h-8 text-emerald-600" />

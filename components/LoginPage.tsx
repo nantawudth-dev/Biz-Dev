@@ -1,23 +1,12 @@
-import React, { useState } from 'react';
-import { User, Role } from '../types';
-import { ChevronDownIcon, GoogleIcon } from './icons';
+import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { GoogleIcon } from './icons';
 
-interface LoginPageProps {
-    onLogin: (user: User) => void;
-}
+const LoginPage: React.FC = () => {
+    const { loginWithGoogle } = useAuth();
 
-const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
-    const [role, setRole] = useState<Role>('user');
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        // Simulate Google Login by using the selected role
-        const user: User = {
-            id: `user${Date.now()}`,
-            username: `Google User (${role})`,
-            role: role,
-        };
-        onLogin(user);
+    const handleLogin = async () => {
+        await loginWithGoogle();
     };
 
     return (
@@ -71,11 +60,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                             </p>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-8 flex flex-col items-center">
-
+                        <div className="space-y-8 flex flex-col items-center">
                             <div className="w-full text-center space-y-2">
                                 <button
-                                    type="submit"
+                                    onClick={handleLogin}
                                     className="w-full flex justify-center items-center gap-3 bg-white border border-slate-200 text-slate-700 px-6 py-4 font-medium rounded-xl shadow-sm hover:shadow-md hover:bg-slate-50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 transform group"
                                 >
                                     <GoogleIcon className="w-6 h-6" />
@@ -85,28 +73,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                                     สำหรับบัญชี <span className="font-semibold text-slate-500">@nu.ac.th</span> เท่านั้น
                                 </p>
                             </div>
-
-                            <div className="w-full pt-4 border-t border-slate-100">
-                                <div className="group relative">
-                                    <label htmlFor="role" className="block text-xs font-medium text-slate-400 mb-2 text-center uppercase tracking-wider">
-                                        ระดับผู้ใช้งาน (Demo)
-                                    </label>
-                                    <div className="relative max-w-xs mx-auto">
-                                        <select
-                                            id="role"
-                                            value={role}
-                                            onChange={(e) => setRole(e.target.value as Role)}
-                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer text-center"
-                                        >
-                                            <option value="user">ผู้ใช้งานทั่วไป</option>
-                                            <option value="officer">เจ้าหน้าที่</option>
-                                            <option value="admin">ผู้ดูแลระบบ</option>
-                                        </select>
-                                        <ChevronDownIcon className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             </div>

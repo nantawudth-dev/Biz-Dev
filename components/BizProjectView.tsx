@@ -1,16 +1,11 @@
 
-import React, { useState } from 'react';
-import { Project, Entrepreneur, ProjectCategory } from '../types';
-import { SparklesIcon, Squares2X2Icon, ListBulletIcon, FunnelIcon, MagnifyingGlassIcon, CalendarIcon, DocumentTextIcon, ChevronDownIcon, EyeIcon, BriefcaseIcon, ArrowLeftIcon, BuildingOffice2Icon, CurrencyDollarIcon, TagIcon, CheckCircleIcon, UserCircleIcon, BookOpenIcon } from './icons';
-import { ProjectCategorySetting } from '../App';
+import React, { useState, useEffect } from 'react';
+import { Project, ProjectCategory } from '../types';
+import { SparklesIcon, Squares2X2Icon, ListBulletIcon, FunnelIcon, MagnifyingGlassIcon, CalendarIcon, DocumentTextIcon, ChevronDownIcon, EyeIcon, BriefcaseIcon, ArrowLeftIcon, TagIcon, CheckCircleIcon, UserCircleIcon, BookOpenIcon } from './icons';
+import { PROJECT_CATEGORIES, FISCAL_YEARS } from '../constants'; // Import constants
 import Pagination from './Pagination';
-
-interface BizProjectViewProps {
-    projects: Project[];
-    entrepreneurs: Entrepreneur[];
-    projectCategories: ProjectCategorySetting[];
-    fiscalYears: string[];
-}
+import { useNotification } from '../contexts/NotificationContext';
+import { dataService } from '../services/dataService';
 
 const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number | string; gradient: string }> = ({ icon, label, value, gradient }) => (
     <div className={`relative overflow-hidden rounded-xl shadow-lg p-6 flex items-center gap-6 ${gradient} text-white`}>
@@ -29,11 +24,32 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number |
 );
 
 
-const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs, projectCategories, fiscalYears }) => {
+const BizProjectView: React.FC = () => { // Removed props
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const { showNotification } = useNotification();
+
     const [displayMode, setDisplayMode] = useState<'card' | 'list'>('list');
 
+    // Fetch data on mount
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setIsLoading(true);
+                const fetchedProjects = await dataService.getProjects();
+                setProjects(fetchedProjects);
+            } catch (error) {
+                console.error('Failed to fetch project data:', error);
+                showNotification('ไม่สามารถโหลดข้อมูลโครงการได้', 'error');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchData();
+    }, [showNotification]);
+
     // Force card view on mobile
-    React.useEffect(() => {
+    useEffect(() => {
         const handleResize = () => {
             if (window.innerWidth < 768) {
                 setDisplayMode('card');
@@ -46,6 +62,7 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
     const [selectedCategory, setSelectedCategory] = useState<ProjectCategory | 'All'>('All');
     const [selectedYear, setSelectedYear] = useState<string>('All');
     const [searchTerm, setSearchTerm] = useState('');
@@ -53,7 +70,7 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(6);
 
-    const categoriesForFilter = [{ key: 'All', label: 'แสดงทั้งหมด' }, ...projectCategories];
+    const categoriesForFilter = [{ key: 'All', label: 'แสดงทั้งหมด' }, ...PROJECT_CATEGORIES];
 
     const handleBackToList = () => {
         setSelectedProject(null);
@@ -62,13 +79,14 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
     const filteredProjects = projects
         .filter(p => p.status === 'Completed')
         .filter(p => selectedCategory === 'All' || p.category === selectedCategory)
+        .filter(p => selectedYear === 'All' || p.fiscalYear === selectedYear)
         .filter(p =>
             p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (p.outcome || '').toLowerCase().includes(searchTerm.toLowerCase())
         );
 
     // Reset pagination when filters change
-    React.useEffect(() => {
+    useEffect(() => {
         setCurrentPage(1);
     }, [selectedCategory, selectedYear, searchTerm]);
 
@@ -77,6 +95,15 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
     );
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                <p className="mt-4 text-slate-500 font-title">กำลังโหลดข้อมูล...</p>
+            </div>
+        );
+    }
 
     const CardView = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -102,7 +129,7 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
                                 </p>
                                 <p className="flex items-center gap-2">
                                     <TagIcon className="w-4 h-4 text-slate-400" />
-                                    <span>{projectCategories.find(c => c.key === proj.category)?.label || proj.category}</span>
+                                    <span>{PROJECT_CATEGORIES.find(c => c.key === proj.category)?.label || proj.category}</span>
                                 </p>
                             </div>
 
@@ -139,9 +166,13 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-200">
                         {paginatedProjects.map((proj) => {
-                            const categoryLabel = projectCategories.find(c => c.key === proj.category)?.label;
+                            const categoryLabel = PROJECT_CATEGORIES.find(c => c.key === proj.category)?.label;
                             return (
-                                <tr key={proj.id} className="hover:bg-slate-50 transition-colors">
+                                <tr
+                                    key={proj.id}
+                                    className="hover:bg-slate-50 transition-colors cursor-pointer"
+                                    onClick={() => setSelectedProject(proj)}
+                                >
                                     <td data-label="ชื่อโครงการ" className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-slate-900">{proj.name}</div>
                                     </td>
@@ -180,6 +211,7 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
                                                     rel="noopener noreferrer"
                                                     className="text-slate-400 hover:text-blue-600 transition-colors p-1"
                                                     title="ดูรายงานฉบับสมบูรณ์"
+                                                    onClick={(e) => e.stopPropagation()}
                                                 >
                                                     <DocumentTextIcon className="w-5 h-5" />
                                                 </a>
@@ -203,10 +235,9 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
                 <div className="flex items-center gap-4">
                     <button
                         onClick={handleBackToList}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-md font-semibold"
+                        className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
                     >
-                        <ArrowLeftIcon className="w-5 h-5" />
-                        กลับ
+                        <ArrowLeftIcon className="w-6 h-6" />
                     </button>
                     <div className="flex items-center gap-3">
                         <BriefcaseIcon className="w-8 h-8 text-emerald-600" />
@@ -233,7 +264,7 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
                         <div>
                             <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">หมวดหมู่</label>
                             <p className="text-lg font-medium text-slate-900 mt-1">
-                                {projectCategories.find(c => c.key === selectedProject.category)?.label || selectedProject.category}
+                                {PROJECT_CATEGORIES.find(c => c.key === selectedProject.category)?.label || selectedProject.category}
                             </p>
                         </div>
                         <div>
@@ -332,7 +363,7 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
                             className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors appearance-none font-semibold text-sm cursor-pointer"
                         >
                             <option value="All">ทุกปีงบประมาณ</option>
-                            {fiscalYears.map(year => (
+                            {FISCAL_YEARS.map(year => (
                                 <option key={year} value={year}>{year}</option>
                             ))}
                         </select>
@@ -390,8 +421,6 @@ const BizProjectView: React.FC<BizProjectViewProps> = ({ projects, entrepreneurs
                     gradient="bg-gradient-to-br from-orange-500 to-amber-600"
                 />
             </div>
-
-
 
             {filteredProjects.length > 0 ? (
                 <>

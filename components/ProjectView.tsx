@@ -1,20 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Project, Entrepreneur, ProjectCategory, Role } from '../types';
-import { PlusIcon, Squares2X2Icon, ListBulletIcon, FunnelIcon, MagnifyingGlassIcon, ChevronDownIcon, ArrowLeftIcon, PencilIcon, TrashIcon, EyeIcon, CalendarIcon, ClipboardDocumentCheckIcon, DocumentTextIcon, BriefcaseIcon, EllipsisVerticalIcon, BuildingOffice2Icon, CurrencyDollarIcon, TagIcon, ChartBarIcon, CheckCircleIcon, UserCircleIcon, BookOpenIcon } from './icons';
+import { PlusIcon, Squares2X2Icon, ListBulletIcon, FunnelIcon, MagnifyingGlassIcon, ChevronDownIcon, ArrowLeftIcon, PencilIcon, TrashIcon, EyeIcon, CalendarIcon, ClipboardDocumentCheckIcon, DocumentTextIcon, BriefcaseIcon, EllipsisVerticalIcon, BuildingOffice2Icon, CurrencyDollarIcon, TagIcon, ChartBarIcon, CheckCircleIcon, UserCircleIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
 import { useNotification } from '../contexts/NotificationContext';
+import { useAuth } from '../contexts/AuthContext';
+import { dataService } from '../services/dataService';
 import Pagination from './Pagination';
-import { ProjectCategorySetting } from '../App';
+import { PROJECT_CATEGORIES, FISCAL_YEARS } from '../constants'; // Import constants
 import Modal from './Modal';
-
-interface ProjectViewProps {
-  userRole: Role;
-  projects: Project[];
-  setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
-  entrepreneurs: Entrepreneur[];
-  projectCategories: ProjectCategorySetting[];
-  fiscalYears: string[];
-}
 
 const emptyProject: Omit<Project, 'id'> = {
   name: '',
@@ -29,7 +22,14 @@ const emptyProject: Omit<Project, 'id'> = {
   fiscalYear: '',
 };
 
-const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjects, entrepreneurs, projectCategories, fiscalYears }) => {
+const ProjectView: React.FC = () => { // Removed props
+  const { isAdmin, isOfficer } = useAuth();
+  const userRole: Role = isAdmin ? 'admin' : isOfficer ? 'officer' : 'user';
+
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [entrepreneurs, setEntrepreneurs] = useState<Entrepreneur[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [displayMode, setDisplayMode] = useState<'card' | 'list'>('list');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -49,8 +49,29 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
+  // Fetch data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [fetchedProjects, fetchedEntrepreneurs] = await Promise.all([
+          dataService.getProjects(),
+          dataService.getEntrepreneurs()
+        ]);
+        setProjects(fetchedProjects);
+        setEntrepreneurs(fetchedEntrepreneurs);
+      } catch (error) {
+        console.error('Failed to fetch project data:', error);
+        showNotification('ไม่สามารถโหลดข้อมูลโครงการได้', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [showNotification]);
+
   // Force card view on mobile
-  React.useEffect(() => {
+  useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
         setDisplayMode('card');
@@ -93,17 +114,32 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name && formData.entrepreneur && formData.projectLeader) {
-      if (editingProject) {
-        setProjects(projects.map(p => p.id === editingProject.id ? { ...formData, id: p.id } as Project : p));
-        showNotification('อัปเดตโครงการสำเร็จ', 'success');
-      } else {
-        setProjects([...projects, { ...formData, id: `proj${Date.now()}` } as Project]);
-        showNotification('เพิ่มโครงการใหม่สำเร็จ', 'success');
+    if (formData.name && formData.projectLeader) { // entrepreneur check moved inside/adjusted
+      try {
+        if (editingProject) {
+          await dataService.updateProject(editingProject.id, {
+            ...formData
+          });
+          // We might need to refresh to get the entrepreneur name if it changed, 
+          // but effectively we can update local state mostly.
+          // If entrepreneurId changed, the name in 'entrepreneur' field of formData might be stale if we didn't update it.
+          // But let's assume for now we just want to save.
+          setProjects(projects.map(p => p.id === editingProject.id ? { ...formData, id: p.id, entrepreneur: entrepreneurs.find(e => e.id === formData.entrepreneurId)?.businessName || formData.entrepreneur } as Project : p));
+          showNotification('อัปเดตโครงการสำเร็จ', 'success');
+        } else {
+          const newProject = await dataService.createProject(formData);
+          if (newProject) {
+            setProjects([newProject, ...projects]);
+            showNotification('เพิ่มโครงการใหม่สำเร็จ', 'success');
+          }
+        }
+        setIsFormOpen(false);
+      } catch (error) {
+        console.error('Error saving project:', error);
+        showNotification('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
       }
-      setIsFormOpen(false);
     }
   };
 
@@ -112,20 +148,35 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
     setIsDeleteModalOpen(true);
   };
 
-  const executeDeleteProject = () => {
+  const executeDeleteProject = async () => {
     if (projectToDelete) {
-      setProjects(projects.filter(p => p.id !== projectToDelete.id));
-      showNotification('ลบโครงการสำเร็จ', 'delete');
-      setIsDeleteModalOpen(false);
-      setProjectToDelete(null);
+      try {
+        await dataService.deleteProject(projectToDelete.id);
+        setProjects(projects.filter(p => p.id !== projectToDelete.id));
+        showNotification('ลบโครงการสำเร็จ', 'delete');
+        setIsDeleteModalOpen(false);
+        setProjectToDelete(null);
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        showNotification('เกิดข้อผิดพลาดในการลบข้อมูล', 'error');
+      }
     }
   };
 
   const getStatusClass = (status: Project['status']) => {
     switch (status) {
-      case 'Completed': return 'bg-green-100 text-green-800';
-      case 'In Progress': return 'bg-amber-100 text-amber-800';
-      case 'Planned': return 'bg-slate-200 text-slate-800';
+      case 'Completed': return 'bg-green-100 text-green-800'; // ดำเนินการเสร็จสิ้น
+      case 'In Progress': return 'bg-amber-100 text-amber-800'; // กำลังดำเนินการ
+      case 'Planned': return 'bg-slate-200 text-slate-800'; // แผนงาน
+    }
+  };
+
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case 'Completed': return 'ดำเนินการเสร็จสิ้น';
+      case 'In Progress': return 'กำลังดำเนินการ';
+      case 'Planned': return 'แผนงาน';
+      default: return status;
     }
   };
 
@@ -162,6 +213,15 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
   const completedProjects = projects.filter(p => p.status === 'Completed').length;
   const totalBudget = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+        <p className="mt-4 text-slate-500 font-title">กำลังโหลดข้อมูล...</p>
+      </div>
+    );
+  }
+
   // View: Add/Edit Project Form
   if (isFormOpen) {
     return (
@@ -187,9 +247,9 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
               <label className="block text-sm font-medium text-slate-700 mb-1">สถานะ</label>
               <div className="relative">
                 <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as Project['status'] })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none cursor-pointer" >
-                  <option value="Planned">Planned</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
+                  <option value="Planned">แผนงาน (Planned)</option>
+                  <option value="In Progress">กำลังดำเนินการ (In Progress)</option>
+                  <option value="Completed">ดำเนินการเสร็จสิ้น (Completed)</option>
                 </select>
                 <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
@@ -200,7 +260,7 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
               <div className="relative">
                 <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value as ProjectCategory })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none cursor-pointer" required >
                   <option value="">เลือกหมวดหมู่โครงการ</option>
-                  {projectCategories.map(cat => (
+                  {PROJECT_CATEGORIES.map(cat => (
                     <option key={cat.key} value={cat.key}>{cat.label}</option>
                   ))}
                 </select>
@@ -213,7 +273,7 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
               <div className="relative">
                 <select value={formData.fiscalYear} onChange={(e) => setFormData({ ...formData, fiscalYear: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none cursor-pointer" required >
                   <option value="">เลือกปีงบประมาณ</option>
-                  {fiscalYears.map(year => (
+                  {FISCAL_YEARS.map(year => (
                     <option key={year} value={year}>{year}</option>
                   ))}
                 </select>
@@ -222,8 +282,8 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
             </div>
 
             <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-1">ผู้ประกอบการ</label>
-              <input type="text" placeholder="ระบุชื่อผู้ประกอบการ" value={formData.entrepreneur} onChange={(e) => setFormData({ ...formData, entrepreneur: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
+              <label className="block text-sm font-medium text-slate-700 mb-1">ผู้ประกอบการ/หน่วยงาน</label>
+              <input type="text" placeholder="ระบุผู้ประกอบการ/หน่วยงาน" value={formData.entrepreneur} onChange={(e) => setFormData({ ...formData, entrepreneur: e.target.value, entrepreneurId: undefined })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
             </div>
 
             <div className="md:col-span-1">
@@ -273,10 +333,9 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
         <div className="flex items-center gap-4">
           <button
             onClick={() => setSelectedProject(null)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-md font-semibold"
+            className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
           >
-            <ArrowLeftIcon className="w-5 h-5" />
-            กลับ
+            <ArrowLeftIcon className="w-6 h-6" />
           </button>
           <div className="flex items-center gap-3">
             <BriefcaseIcon className="w-8 h-8 text-emerald-600" />
@@ -296,14 +355,14 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
               <div className="mt-1">
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-sm font-semibold rounded-full ${getStatusClass(selectedProject.status)}`}>
                   {selectedProject.status === 'Completed' && <CheckCircleIcon className="w-4 h-4" />}
-                  {selectedProject.status}
+                  {statusLabel(selectedProject.status)}
                 </span>
               </div>
             </div>
             <div>
               <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">หมวดหมู่</label>
               <p className="text-lg font-medium text-slate-900 mt-1">
-                {projectCategories.find(c => c.key === selectedProject.category)?.label || selectedProject.category}
+                {PROJECT_CATEGORIES.find(c => c.key === selectedProject.category)?.label || selectedProject.category}
               </p>
             </div>
             <div>
@@ -403,7 +462,7 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
               className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors appearance-none font-semibold text-sm cursor-pointer"
             >
               <option value="All">ทุกปีงบประมาณ</option>
-              {fiscalYears.map(year => (
+              {FISCAL_YEARS.map(year => (
                 <option key={year} value={year}>{year}</option>
               ))}
             </select>
@@ -418,9 +477,9 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
               className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors appearance-none font-semibold text-sm cursor-pointer"
             >
               <option value="All">ทุกสถานะ</option>
-              <option value="Planned">Planned</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
+              <option value="Planned">แผนงาน (Planned)</option>
+              <option value="In Progress">กำลังดำเนินการ (In Progress)</option>
+              <option value="Completed">ดำเนินการเสร็จสิ้น (Completed)</option>
             </select>
             <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-400"></div>
@@ -433,7 +492,7 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
               className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors appearance-none font-semibold text-sm cursor-pointer"
             >
               <option value="All">ทุกหมวดหมู่</option>
-              {projectCategories.map(cat => (
+              {PROJECT_CATEGORIES.map(cat => (
                 <option key={cat.key} value={cat.key}>{cat.label}</option>
               ))}
             </select>
@@ -520,7 +579,7 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
                     <div className="p-6 relative z-10 flex flex-col h-full">
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="text-xl font-medium font-title text-slate-800 line-clamp-1" title={proj.name}>{proj.name}</h3>
-                        <span className={`flex-shrink-0 px-3 py-1 text-xs font-semibold rounded-full ${getStatusClass(proj.status)}`}>{proj.status}</span>
+                        <span className={`flex-shrink-0 px-3 py-1 text-xs font-semibold rounded-full ${getStatusClass(proj.status)}`}>{statusLabel(proj.status)}</span>
                       </div>
 
                       <div className="space-y-2 mb-4 flex-grow">
@@ -614,10 +673,10 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
                           </span>
                         </td>
                         <td data-label="สถานะ" className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(proj.status)}`}>{proj.status}</span>
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(proj.status)}`}>{statusLabel(proj.status)}</span>
                         </td>
                         <td data-label="หมวดหมู่" className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-slate-500">{projectCategories.find(c => c.key === proj.category)?.label || proj.category}</div>
+                          <div className="text-sm text-slate-500">{PROJECT_CATEGORIES.find(c => c.key === proj.category)?.label || proj.category}</div>
                         </td>
                         <td data-label="ผู้ประกอบการ" className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-slate-900">{proj.entrepreneur}</div>
@@ -716,19 +775,19 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
                           <DocumentTextIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                         </div>
 
-                        <div className="mt-5 sm:flex sm:flex-row-reverse gap-3">
-                          <button
-                            type="submit"
-                            className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-base font-medium text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:w-auto sm:text-sm"
-                          >
-                            บันทึกผล
-                          </button>
+                        <div className="mt-6 flex justify-end gap-3">
                           <button
                             type="button"
-                            className="mt-3 w-full inline-flex justify-center rounded-lg border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+                            className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 transition-colors font-medium"
                             onClick={() => setReportingProject(null)}
                           >
                             ยกเลิก
+                          </button>
+                          <button
+                            type="submit"
+                            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                          >
+                            บันทึกผลสัมฤทธิ์
                           </button>
                         </div>
                       </form>
@@ -742,69 +801,60 @@ const ProjectView: React.FC<ProjectViewProps> = ({ userRole, projects, setProjec
       )}
 
       {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        title="ยืนยันการลบโครงการ"
-        icon={<TrashIcon className="w-6 h-6 text-red-600" />}
-      >
-        <div className="space-y-4">
-          <p className="text-slate-600">
-            คุณแน่ใจหรือไม่ว่าต้องการลบโครงการ <span className="font-semibold text-slate-900">"{projectToDelete?.name}"</span>?
-            <br />
-            การกระทำนี้ไม่สามารถเรียกคืนได้
-          </p>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <button
-              onClick={() => setIsDeleteModalOpen(false)}
-              className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 font-medium transition-colors"
-            >
-              ยกเลิก
-            </button>
-            <button
-              onClick={executeDeleteProject}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors shadow-sm"
-            >
-              ยืนยันการลบ
-            </button>
+      <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="ยืนยันการลบ" icon={<ExclamationTriangleIcon className="w-7 h-7 text-red-500" />}>
+        {projectToDelete && (
+          <div>
+            <p className="text-slate-600 mb-6 text-base font-body">คุณแน่ใจหรือไม่ว่าต้องการลบโครงการ <span className="font-semibold text-slate-900">{projectToDelete.name}</span>? <br />การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-5 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 font-semibold transition-colors"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={executeDeleteProject}
+                className="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors"
+              >
+                ยืนยันลบ
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </Modal>
 
-      {/* Quick Menu Card */}
+      {/* Quick Menu Card (Admin/Officer only) */}
       {(userRole === 'admin' || userRole === 'officer') && (
         <div className="mt-8">
           <button
             onClick={handleOpenAdd}
-            className="w-full group relative overflow-hidden bg-gradient-to-r from-green-50 via-cyan-50 to-blue-50 hover:from-green-100 hover:via-cyan-100 hover:to-blue-100 border-2 border-green-200/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] p-6"
+            className="w-full group relative overflow-hidden bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 hover:from-blue-100 hover:via-indigo-100 hover:to-purple-100 border-2 border-blue-200/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] p-6 text-left"
           >
             {/* Background Image */}
             <div className="absolute inset-0 opacity-25 group-hover:opacity-30 transition-opacity">
               <img
-                src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&auto=format&fit=crop"
+                src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&auto=format&fit=crop"
                 alt=""
                 className="w-full h-full object-cover"
               />
             </div>
-
             {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 via-cyan-400/20 to-blue-400/20"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-indigo-400/20 to-purple-400/20"></div>
 
             {/* Content */}
             <div className="relative flex items-center gap-6">
-              <div className="bg-gradient-to-br from-green-500 to-cyan-500 p-4 rounded-xl group-hover:from-green-600 group-hover:to-cyan-600 transition-all shadow-md">
-                <BriefcaseIcon className="w-8 h-8 text-white" />
+              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-4 rounded-xl group-hover:from-blue-600 group-hover:to-indigo-700 transition-all shadow-md">
+                <Squares2X2Icon className="w-8 h-8 text-white" />
               </div>
               <div className="text-left flex-1">
-                <h3 className="text-xl font-bold mb-1 text-slate-800">เพิ่มโครงการ</h3>
-                <p className="text-slate-600 text-sm font-normal">สร้างโครงการใหม่และกำหนดรายละเอียด</p>
+                <h3 className="text-xl font-bold mb-1 text-slate-800">เพิ่มโครงการใหม่</h3>
+                <p className="text-slate-600 text-sm font-normal">สร้างและติดตามแผนงานโครงการใหม่ของคุณ</p>
               </div>
-              <PlusIcon className="w-6 h-6 text-green-600 opacity-80 group-hover:opacity-100 transition-opacity" />
+              <PlusIcon className="w-6 h-6 text-blue-600 opacity-80 group-hover:opacity-100 transition-opacity" />
             </div>
           </button>
         </div>
       )}
-
     </div>
   );
 };

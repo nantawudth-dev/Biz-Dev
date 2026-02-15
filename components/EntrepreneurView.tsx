@@ -1,18 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Entrepreneur, Role } from '../types';
 import Modal from './Modal';
-import { PlusIcon, BuildingIcon, MapPinIcon, PhoneIcon, PencilIcon, TrashIcon, ExclamationTriangleIcon, Squares2X2Icon, ListBulletIcon, BriefcaseIcon, UserGroupIcon, ChatBubbleLeftIcon, GlobeAltIcon, EyeIcon, ChevronDownIcon, FunnelIcon, MagnifyingGlassIcon, ArrowLeftIcon } from './icons';
+import { PlusIcon, BuildingIcon, PhoneIcon, PencilIcon, TrashIcon, ExclamationTriangleIcon, Squares2X2Icon, ListBulletIcon, BriefcaseIcon, UserGroupIcon, EyeIcon, ChevronDownIcon, FunnelIcon, MagnifyingGlassIcon, ArrowLeftIcon } from './icons';
 import { useNotification } from '../contexts/NotificationContext';
+import { useAuth } from '../contexts/AuthContext'; // Added useAuth
+import { dataService } from '../services/dataService';
 import Pagination from './Pagination';
-
-interface EntrepreneurViewProps {
-  userRole: Role;
-  entrepreneurs: Entrepreneur[];
-  setEntrepreneurs: React.Dispatch<React.SetStateAction<Entrepreneur[]>>;
-  establishmentTypes: string[];
-  businessCategories: string[];
-}
 
 const emptyEntrepreneurForm: Omit<Entrepreneur, 'id'> & { id?: string } = {
   name: '', businessName: '', contact: '', establishmentType: '', businessCategory: '', address: '', lineId: '', facebook: '', nickname: ''
@@ -128,7 +122,15 @@ const ListView = ({ data, userRole, onView, onEdit, onDelete }: { data: Entrepre
 );
 
 
-const EntrepreneurView: React.FC<EntrepreneurViewProps> = ({ userRole, entrepreneurs, setEntrepreneurs, establishmentTypes, businessCategories }) => {
+const EntrepreneurView: React.FC = () => { // Removed props
+  const { isAdmin, isOfficer } = useAuth();
+  const userRole: Role = isAdmin ? 'admin' : isOfficer ? 'officer' : 'user';
+
+  const [entrepreneurs, setEntrepreneurs] = useState<Entrepreneur[]>([]);
+  const [establishmentTypes, setEstablishmentTypes] = useState<string[]>([]);
+  const [businessCategories, setBusinessCategories] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [displayMode, setDisplayMode] = useState<'card' | 'list'>('card');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -143,8 +145,34 @@ const EntrepreneurView: React.FC<EntrepreneurViewProps> = ({ userRole, entrepren
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
+  const { showNotification } = useNotification();
+
+  // Fetch data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [fetchedEntrepreneurs, fetchedEstTypes, fetchedBizCats] = await Promise.all([
+          dataService.getEntrepreneurs(),
+          dataService.getEstablishmentTypes(),
+          dataService.getBusinessCategories()
+        ]);
+        setEntrepreneurs(fetchedEntrepreneurs);
+        setEstablishmentTypes(fetchedEstTypes);
+        setBusinessCategories(fetchedBizCats);
+      } catch (error) {
+        console.error('Failed to fetch entrepreneurs or metadata:', error);
+        showNotification('ไม่สามารถโหลดข้อมูลผู้ประกอบการได้', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [showNotification]);
+
+
   // Force card view on mobile
-  React.useEffect(() => {
+  useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
         setDisplayMode('card');
@@ -158,10 +186,6 @@ const EntrepreneurView: React.FC<EntrepreneurViewProps> = ({ userRole, entrepren
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const { showNotification } = useNotification();
-
-
-
   const handleOpenView = (ent: Entrepreneur) => { setViewingEntrepreneur(ent); };
   const handleOpenAdd = () => { setEditingEntrepreneur(null); setFormData(emptyEntrepreneurForm); setIsFormOpen(true); };
   const handleOpenEdit = (ent: Entrepreneur) => { setEditingEntrepreneur(ent); setFormData(ent); setIsFormOpen(true); };
@@ -173,24 +197,42 @@ const EntrepreneurView: React.FC<EntrepreneurViewProps> = ({ userRole, entrepren
   const handleCloseDeleteModal = () => { setIsDeleteModalOpen(false); };
 
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.businessName || !formData.establishmentType || !formData.businessCategory) return;
-    if (editingEntrepreneur) {
-      setEntrepreneurs(entrepreneurs.map(ent => (ent.id === editingEntrepreneur.id ? { ...formData, id: ent.id } : ent)));
-      showNotification('บันทึกข้อมูลผู้ประกอบการสำเร็จ', 'success');
-    } else {
-      setEntrepreneurs([...entrepreneurs, { ...formData, id: `ent${Date.now()}` }]);
-      showNotification('เพิ่มผู้ประกอบการใหม่สำเร็จ', 'success');
+
+    try {
+      if (editingEntrepreneur) {
+        await dataService.updateEntrepreneur(editingEntrepreneur.id, {
+          ...formData
+        });
+        setEntrepreneurs(entrepreneurs.map(ent => (ent.id === editingEntrepreneur.id ? { ...formData, id: ent.id } : ent)));
+        showNotification('บันทึกข้อมูลผู้ประกอบการสำเร็จ', 'success');
+      } else {
+        const newEnt = await dataService.createEntrepreneur(formData);
+        if (newEnt) {
+          setEntrepreneurs([newEnt, ...entrepreneurs]);
+          showNotification('เพิ่มผู้ประกอบการใหม่สำเร็จ', 'success');
+        }
+      }
+      handleBackToList();
+    } catch (error) {
+      console.error('Error saving entrepreneur:', error);
+      showNotification('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
     }
-    handleBackToList();
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (deletingEntrepreneur) {
-      setEntrepreneurs(entrepreneurs.filter(ent => ent.id !== deletingEntrepreneur.id));
-      showNotification('ลบผู้ประกอบการสำเร็จ', 'delete');
-      handleCloseDeleteModal();
+      try {
+        await dataService.deleteEntrepreneur(deletingEntrepreneur.id);
+        setEntrepreneurs(entrepreneurs.filter(ent => ent.id !== deletingEntrepreneur.id));
+        showNotification('ลบผู้ประกอบการสำเร็จ', 'delete');
+        handleCloseDeleteModal();
+      } catch (error) {
+        console.error('Error deleting entrepreneur:', error);
+        showNotification('เกิดข้อผิดพลาดในการลบข้อมูล', 'error');
+      }
     }
   };
 
@@ -216,6 +258,15 @@ const EntrepreneurView: React.FC<EntrepreneurViewProps> = ({ userRole, entrepren
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+        <p className="mt-4 text-slate-500 font-title">กำลังโหลดข้อมูล...</p>
+      </div>
+    );
+  }
 
   // View: Add/Edit Form
   if (isFormOpen) {
@@ -309,10 +360,9 @@ const EntrepreneurView: React.FC<EntrepreneurViewProps> = ({ userRole, entrepren
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={handleBackToList}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-md font-semibold"
+            className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
           >
-            <ArrowLeftIcon className="w-5 h-5" />
-            กลับ
+            <ArrowLeftIcon className="w-6 h-6" />
           </button>
           <div className="flex items-center gap-3">
             <BriefcaseIcon className="w-8 h-8 text-emerald-600" />
