@@ -4,6 +4,7 @@ import { Role, ViewType } from './types';
 import LoginPage from './components/LoginPage';
 import { useNotification, NotificationProvider } from './contexts/NotificationContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { DataProvider } from './contexts/DataContext';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Modal from './components/Modal';
@@ -223,7 +224,9 @@ const App = () => {
   return (
     <NotificationProvider>
       <AuthProvider>
-        <MainApp />
+        <DataProvider>
+          <MainApp />
+        </DataProvider>
       </AuthProvider>
     </NotificationProvider>
   );

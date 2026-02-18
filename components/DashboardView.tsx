@@ -4,6 +4,7 @@ import { Entrepreneur, Project, Course, Consultant } from '../types';
 import { BuildingIcon, BriefcaseIcon, BookOpenIcon, UserGroupIcon, ArrowLeftIcon, CheckCircleIcon, UserCircleIcon, CalendarIcon, EyeIcon, Squares2X2Icon, ListBulletIcon, MagnifyingGlassIcon, FunnelIcon, ChevronDownIcon } from './icons';
 import { useNotification } from '../contexts/NotificationContext';
 import { dataService } from '../services/dataService';
+import { useData } from '../contexts/DataContext';
 import Pagination from './Pagination';
 import DashboardCharts from './DashboardCharts';
 
@@ -33,6 +34,7 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
     const [courses, setCourses] = useState<Course[]>([]);
     const [consultants, setConsultants] = useState<Consultant[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const { fetchData } = useData();
     const { showNotification } = useNotification();
 
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -46,22 +48,17 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [selectedStatus, setSelectedStatus] = useState<string>('All');
 
-    // Fetch data on mount
+    // Fetch data using DataContext
     useEffect(() => {
-        const fetchData = async () => {
+        const loadDashboardData = async () => {
             try {
                 setIsLoading(true);
-                const [entrepreneursData, projectsData, coursesData, consultantsData] = await Promise.all([
-                    dataService.getEntrepreneurs(),
-                    dataService.getProjects(),
-                    dataService.getCourses(),
-                    dataService.getConsultants()
+                await Promise.all([
+                    fetchData('entrepreneurs', () => dataService.getEntrepreneurs()),
+                    fetchData('projects', () => dataService.getProjects()),
+                    fetchData('courses', () => dataService.getCourses()),
+                    fetchData('consultants', () => dataService.getConsultants())
                 ]);
-
-                setEntrepreneurs(entrepreneursData);
-                setProjects(projectsData);
-                setCourses(coursesData);
-                setConsultants(consultantsData);
             } catch (error) {
                 console.error('Failed to fetch dashboard data:', error);
                 showNotification('ไม่สามารถโหลดข้อมูลแดชบอร์ดได้', 'error');
@@ -69,8 +66,25 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
                 setIsLoading(false);
             }
         };
-        fetchData();
-    }, [showNotification]);
+        loadDashboardData();
+    }, [fetchData, showNotification]);
+
+    // Derived data from DataContext or local state
+    useEffect(() => {
+        const syncData = async () => {
+            const [e, p, c, con] = await Promise.all([
+                dataService.getEntrepreneurs(),
+                dataService.getProjects(),
+                dataService.getCourses(),
+                dataService.getConsultants()
+            ]);
+            setEntrepreneurs(e);
+            setProjects(p);
+            setCourses(c);
+            setConsultants(con);
+        };
+        if (!isLoading) syncData();
+    }, [isLoading]);
 
     // Force card view on mobile
     useEffect(() => {

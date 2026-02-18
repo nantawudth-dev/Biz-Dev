@@ -6,6 +6,7 @@ import { PlusIcon, BookOpenIcon, Squares2X2Icon, ListBulletIcon, MagnifyingGlass
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { dataService } from '../services/dataService';
+import { useData } from '../contexts/DataContext';
 import Pagination from './Pagination';
 
 const emptyCourseForm: Omit<Course, 'id'> & { id?: string } = {
@@ -173,19 +174,19 @@ const CourseView: React.FC = () => { // Removed props
   const { isAdmin, isOfficer } = useAuth();
   const userRole: Role = isAdmin ? 'admin' : isOfficer ? 'officer' : 'user';
 
+  const { fetchData, invalidateCache } = useData();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { showNotification } = useNotification();
 
   const [displayMode, setDisplayMode] = useState<'card' | 'list'>('card');
 
-  // Fetch data on mount
+  // Fetch data using DataContext
   useEffect(() => {
-    const fetchData = async () => {
+    const loadCourseData = async () => {
       try {
         setIsLoading(true);
-        const data = await dataService.getCourses();
-        setCourses(data);
+        await fetchData('courses', () => dataService.getCourses());
       } catch (error) {
         console.error('Failed to fetch course data:', error);
         showNotification('ไม่สามารถโหลดข้อมูลหลักสูตรได้', 'error');
@@ -193,9 +194,17 @@ const CourseView: React.FC = () => { // Removed props
         setIsLoading(false);
       }
     };
-    fetchData();
-  }, [showNotification]);
+    loadCourseData();
+  }, [fetchData, showNotification]);
 
+  // Sync from context
+  useEffect(() => {
+    const syncCourses = async () => {
+      const data = await dataService.getCourses();
+      setCourses(data);
+    };
+    if (!isLoading) syncCourses();
+  }, [isLoading]);
 
   // Force card view on mobile
   useEffect(() => {
@@ -238,11 +247,13 @@ const CourseView: React.FC = () => { // Removed props
     try {
       if (editingCourse) {
         await dataService.updateCourse(editingCourse.id, formData);
+        invalidateCache('courses');
         setCourses(courses.map(c => (c.id === editingCourse.id ? { ...formData, id: c.id } as Course : c)));
         showNotification('บันทึกข้อมูลหลักสูตรสำเร็จ', 'success');
       } else {
         const newCourse = await dataService.createCourse(formData);
         if (newCourse) {
+          invalidateCache('courses');
           setCourses([newCourse, ...courses]);
           showNotification('เพิ่มหลักสูตรใหม่สำเร็จ', 'success');
         }
@@ -258,6 +269,7 @@ const CourseView: React.FC = () => { // Removed props
     if (deletingCourse) {
       try {
         await dataService.deleteCourse(deletingCourse.id);
+        invalidateCache('courses');
         setCourses(courses.filter(c => c.id !== deletingCourse.id));
         showNotification('ลบหลักสูตรสำเร็จ', 'delete');
         handleCloseDeleteModal();

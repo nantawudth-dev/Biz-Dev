@@ -5,6 +5,7 @@ import { PlusIcon, Squares2X2Icon, ListBulletIcon, FunnelIcon, MagnifyingGlassIc
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { dataService } from '../services/dataService';
+import { useData } from '../contexts/DataContext';
 import Pagination from './Pagination';
 import { PROJECT_CATEGORIES, FISCAL_YEARS } from '../constants'; // Import constants
 import Modal from './Modal';
@@ -37,7 +38,6 @@ const ProjectView: React.FC = () => { // Removed props
   const [reportingProject, setReportingProject] = useState<Project | null>(null);
   const [outcomeForm, setOutcomeForm] = useState('');
   const [reportLink, setReportLink] = useState('');
-  const { showNotification } = useNotification();
 
   const [selectedStatus, setSelectedStatus] = useState<'All' | Project['status']>('All');
   const [selectedCategory, setSelectedCategory] = useState<'All' | ProjectCategory>('All');
@@ -49,17 +49,18 @@ const ProjectView: React.FC = () => { // Removed props
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
+  const { fetchData, invalidateCache } = useData();
+  const { showNotification } = useNotification();
+
   // Fetch data on mount
   useEffect(() => {
-    const fetchData = async () => {
+    const loadProjectData = async () => {
       try {
         setIsLoading(true);
-        const [fetchedProjects, fetchedEntrepreneurs] = await Promise.all([
-          dataService.getProjects(),
-          dataService.getEntrepreneurs()
+        await Promise.all([
+          fetchData('projects', () => dataService.getProjects()),
+          fetchData('entrepreneurs', () => dataService.getEntrepreneurs())
         ]);
-        setProjects(fetchedProjects);
-        setEntrepreneurs(fetchedEntrepreneurs);
       } catch (error) {
         console.error('Failed to fetch project data:', error);
         showNotification('ไม่สามารถโหลดข้อมูลโครงการได้', 'error');
@@ -67,8 +68,21 @@ const ProjectView: React.FC = () => { // Removed props
         setIsLoading(false);
       }
     };
-    fetchData();
-  }, [showNotification]);
+    loadProjectData();
+  }, [fetchData, showNotification]);
+
+  // Sync with cached data
+  useEffect(() => {
+    const syncData = async () => {
+      const [p, e] = await Promise.all([
+        dataService.getProjects(),
+        dataService.getEntrepreneurs()
+      ]);
+      setProjects(p);
+      setEntrepreneurs(e);
+    };
+    if (!isLoading) syncData();
+  }, [isLoading]);
 
   // Force card view on mobile
   useEffect(() => {
@@ -122,6 +136,7 @@ const ProjectView: React.FC = () => { // Removed props
           await dataService.updateProject(editingProject.id, {
             ...formData
           });
+          invalidateCache('projects');
           // We might need to refresh to get the entrepreneur name if it changed, 
           // but effectively we can update local state mostly.
           // If entrepreneurId changed, the name in 'entrepreneur' field of formData might be stale if we didn't update it.
@@ -131,6 +146,7 @@ const ProjectView: React.FC = () => { // Removed props
         } else {
           const newProject = await dataService.createProject(formData);
           if (newProject) {
+            invalidateCache('projects');
             setProjects([newProject, ...projects]);
             showNotification('เพิ่มโครงการใหม่สำเร็จ', 'success');
           }
@@ -152,6 +168,7 @@ const ProjectView: React.FC = () => { // Removed props
     if (projectToDelete) {
       try {
         await dataService.deleteProject(projectToDelete.id);
+        invalidateCache('projects');
         setProjects(projects.filter(p => p.id !== projectToDelete.id));
         showNotification('ลบโครงการสำเร็จ', 'delete');
         setIsDeleteModalOpen(false);

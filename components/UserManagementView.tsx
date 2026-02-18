@@ -5,6 +5,7 @@ import Modal from './Modal';
 import { PlusIcon, PencilIcon, TrashIcon, UserCircleIcon, ExclamationTriangleIcon, ChevronDownIcon } from './icons';
 import { useNotification } from '../contexts/NotificationContext';
 import { dataService } from '../services/dataService';
+import { useData } from '../contexts/DataContext';
 
 // Props interface - Empty now as data is fetched internally
 interface UserManagementViewProps { }
@@ -17,6 +18,7 @@ const emptyUserForm: Omit<UserAccount, 'id'> = {
 };
 
 const UserManagementView: React.FC<UserManagementViewProps> = () => {
+  const { fetchData, invalidateCache } = useData();
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -29,12 +31,24 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
   const { showNotification } = useNotification();
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    const loadUserData = async () => {
+      try {
+        setIsLoading(true);
+        // Using a custom key for profiles if needed, or reusing projects key if they are related (usually separate)
+        await fetchData('profiles', () => dataService.getProfiles());
+      } catch (error) {
+        console.error('Error loading users:', error);
+        showNotification('ไม่สามารถโหลดข้อมูลผู้ใช้งานได้', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadUserData();
+  }, [fetchData, showNotification]);
 
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true);
+  // Sync users from context
+  useEffect(() => {
+    const syncUsers = async () => {
       const profiles = await dataService.getProfiles();
       const mappedUsers: UserAccount[] = profiles.map((p: any) => ({
         id: p.id,
@@ -44,13 +58,9 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
         isActive: p.is_active
       }));
       setUsers(mappedUsers);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      showNotification('ไม่สามารถโหลดข้อมูลผู้ใช้งานได้', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+    if (!isLoading) syncUsers();
+  }, [isLoading]);
 
   const handleOpenEditModal = (user: UserAccount) => {
     setEditingUser(user);
@@ -82,6 +92,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
 
         if (editingUser.id) {
           await dataService.updateProfile(editingUser.id, profileUpdates);
+          invalidateCache('profiles');
         }
 
         setUsers(users.map(u => u.id === editingUser.id ? { ...formData, id: editingUser.id } as UserAccount : u));
@@ -97,6 +108,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
 
         // Optimistically add to list if successful
         if (newProfile) {
+          invalidateCache('profiles');
           const newUser: UserAccount = {
             id: newProfile.id,
             username: newProfile.username,
@@ -122,6 +134,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
         // Remove from profiles
         if (deletingUser.id) {
           await dataService.deleteProfile(deletingUser.id);
+          invalidateCache('profiles');
         }
 
         setUsers(users.filter(u => u.id !== deletingUser.id));

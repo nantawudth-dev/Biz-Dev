@@ -6,6 +6,7 @@ import { PlusIcon, PencilIcon, TrashIcon, UserCircleIcon, PhoneIcon, BriefcaseIc
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { dataService } from '../services/dataService';
+import { useData } from '../contexts/DataContext';
 import Pagination from './Pagination';
 
 const emptyConsultantForm: Omit<Consultant, 'id'> = {
@@ -23,6 +24,7 @@ const ConsultantView: React.FC = () => { // Removed props
   const { isAdmin, isOfficer } = useAuth();
   const userRole: Role = isAdmin ? 'admin' : isOfficer ? 'officer' : 'user';
 
+  const { fetchData, invalidateCache } = useData();
   const [consultants, setConsultants] = useState<Consultant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [displayMode, setDisplayMode] = useState<'card' | 'list'>('card');
@@ -38,13 +40,12 @@ const ConsultantView: React.FC = () => { // Removed props
   const [itemsPerPage, setItemsPerPage] = useState(9);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch data on mount
+  // Fetch data using DataContext
   useEffect(() => {
-    const fetchData = async () => {
+    const loadConsultantData = async () => {
       try {
         setIsLoading(true);
-        const fetchedConsultants = await dataService.getConsultants();
-        setConsultants(fetchedConsultants);
+        await fetchData('consultants', () => dataService.getConsultants());
       } catch (error) {
         console.error('Failed to fetch consultants:', error);
         showNotification('ไม่สามารถโหลดข้อมูลที่ปรึกษาได้', 'error');
@@ -52,8 +53,17 @@ const ConsultantView: React.FC = () => { // Removed props
         setIsLoading(false);
       }
     };
-    fetchData();
-  }, [showNotification]);
+    loadConsultantData();
+  }, [fetchData, showNotification]);
+
+  // Sync from context
+  useEffect(() => {
+    const syncConsultants = async () => {
+      const data = await dataService.getConsultants();
+      setConsultants(data);
+    };
+    if (!isLoading) syncConsultants();
+  }, [isLoading]);
 
   // Force card view on mobile
   useEffect(() => {
@@ -84,11 +94,13 @@ const ConsultantView: React.FC = () => { // Removed props
       try {
         if (editingConsultant) {
           await dataService.updateConsultant(editingConsultant.id, formData);
+          invalidateCache('consultants');
           setConsultants(consultants.map(c => c.id === editingConsultant.id ? { ...formData, id: c.id } : c));
           showNotification('แก้ไขข้อมูลที่ปรึกษาสำเร็จ', 'success');
         } else {
           const newConsultant = await dataService.createConsultant(formData);
           if (newConsultant) {
+            invalidateCache('consultants');
             setConsultants([...consultants, newConsultant]);
             showNotification('เพิ่มที่ปรึกษาใหม่สำเร็จ', 'success');
           }
@@ -105,6 +117,7 @@ const ConsultantView: React.FC = () => { // Removed props
     if (deletingConsultant) {
       try {
         await dataService.deleteConsultant(deletingConsultant.id);
+        invalidateCache('consultants');
         setConsultants(consultants.filter(c => c.id !== deletingConsultant.id));
         showNotification('ลบข้อมูลที่ปรึกษาสำเร็จ', 'delete');
         handleCloseDeleteModal();

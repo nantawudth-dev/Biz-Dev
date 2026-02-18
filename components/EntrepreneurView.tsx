@@ -6,6 +6,7 @@ import { PlusIcon, BuildingIcon, PhoneIcon, PencilIcon, TrashIcon, ExclamationTr
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext'; // Added useAuth
 import { dataService } from '../services/dataService';
+import { useData } from '../contexts/DataContext';
 import Pagination from './Pagination';
 
 const emptyEntrepreneurForm: Omit<Entrepreneur, 'id'> & { id?: string } = {
@@ -145,21 +146,19 @@ const EntrepreneurView: React.FC = () => { // Removed props
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
+  const { fetchData, invalidateCache } = useData();
   const { showNotification } = useNotification();
 
   // Fetch data on mount
   useEffect(() => {
-    const fetchData = async () => {
+    const loadEntrepreneurData = async () => {
       try {
         setIsLoading(true);
-        const [fetchedEntrepreneurs, fetchedEstTypes, fetchedBizCats] = await Promise.all([
-          dataService.getEntrepreneurs(),
-          dataService.getEstablishmentTypes(),
-          dataService.getBusinessCategories()
+        await Promise.all([
+          fetchData('entrepreneurs', () => dataService.getEntrepreneurs()),
+          fetchData('establishmentTypes', () => dataService.getEstablishmentTypes()),
+          fetchData('businessCategories', () => dataService.getBusinessCategories())
         ]);
-        setEntrepreneurs(fetchedEntrepreneurs);
-        setEstablishmentTypes(fetchedEstTypes);
-        setBusinessCategories(fetchedBizCats);
       } catch (error) {
         console.error('Failed to fetch entrepreneurs or metadata:', error);
         showNotification('ไม่สามารถโหลดข้อมูลผู้ประกอบการได้', 'error');
@@ -167,8 +166,23 @@ const EntrepreneurView: React.FC = () => { // Removed props
         setIsLoading(false);
       }
     };
-    fetchData();
-  }, [showNotification]);
+    loadEntrepreneurData();
+  }, [fetchData, showNotification]);
+
+  // Sync with cached data
+  useEffect(() => {
+    const syncData = async () => {
+      const [e, et, bc] = await Promise.all([
+        dataService.getEntrepreneurs(),
+        dataService.getEstablishmentTypes(),
+        dataService.getBusinessCategories()
+      ]);
+      setEntrepreneurs(e);
+      setEstablishmentTypes(et);
+      setBusinessCategories(bc);
+    };
+    if (!isLoading) syncData();
+  }, [isLoading]);
 
 
   // Force card view on mobile
@@ -206,11 +220,13 @@ const EntrepreneurView: React.FC = () => { // Removed props
         await dataService.updateEntrepreneur(editingEntrepreneur.id, {
           ...formData
         });
+        invalidateCache('entrepreneurs');
         setEntrepreneurs(entrepreneurs.map(ent => (ent.id === editingEntrepreneur.id ? { ...formData, id: ent.id } : ent)));
         showNotification('บันทึกข้อมูลผู้ประกอบการสำเร็จ', 'success');
       } else {
         const newEnt = await dataService.createEntrepreneur(formData);
         if (newEnt) {
+          invalidateCache('entrepreneurs');
           setEntrepreneurs([newEnt, ...entrepreneurs]);
           showNotification('เพิ่มผู้ประกอบการใหม่สำเร็จ', 'success');
         }
@@ -226,6 +242,7 @@ const EntrepreneurView: React.FC = () => { // Removed props
     if (deletingEntrepreneur) {
       try {
         await dataService.deleteEntrepreneur(deletingEntrepreneur.id);
+        invalidateCache('entrepreneurs');
         setEntrepreneurs(entrepreneurs.filter(ent => ent.id !== deletingEntrepreneur.id));
         showNotification('ลบผู้ประกอบการสำเร็จ', 'delete');
         handleCloseDeleteModal();
