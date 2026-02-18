@@ -49,10 +49,10 @@ const ProjectView: React.FC = () => { // Removed props
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
-  const { fetchData, invalidateCache } = useData();
+  const { data, fetchData, invalidateCache } = useData();
   const { showNotification } = useNotification();
 
-  // Fetch data on mount
+  // Fetch data using DataContext on mount
   useEffect(() => {
     const loadProjectData = async () => {
       try {
@@ -71,18 +71,11 @@ const ProjectView: React.FC = () => { // Removed props
     loadProjectData();
   }, [fetchData, showNotification]);
 
-  // Sync with cached data
+  // Sync from DataContext when the cached data changes
   useEffect(() => {
-    const syncData = async () => {
-      const [p, e] = await Promise.all([
-        dataService.getProjects(),
-        dataService.getEntrepreneurs()
-      ]);
-      setProjects(p);
-      setEntrepreneurs(e);
-    };
-    if (!isLoading) syncData();
-  }, [isLoading]);
+    if (data.projects) setProjects(data.projects);
+    if (data.entrepreneurs) setEntrepreneurs(data.entrepreneurs);
+  }, [data.projects, data.entrepreneurs]);
 
   // Force card view on mobile
   useEffect(() => {

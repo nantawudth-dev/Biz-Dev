@@ -146,10 +146,10 @@ const EntrepreneurView: React.FC = () => { // Removed props
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { fetchData, invalidateCache } = useData();
+  const { data, fetchData, invalidateCache } = useData();
   const { showNotification } = useNotification();
 
-  // Fetch data on mount
+  // Fetch data using DataContext on mount
   useEffect(() => {
     const loadEntrepreneurData = async () => {
       try {
@@ -169,20 +169,12 @@ const EntrepreneurView: React.FC = () => { // Removed props
     loadEntrepreneurData();
   }, [fetchData, showNotification]);
 
-  // Sync with cached data
+  // Sync from DataContext when the cached data changes
   useEffect(() => {
-    const syncData = async () => {
-      const [e, et, bc] = await Promise.all([
-        dataService.getEntrepreneurs(),
-        dataService.getEstablishmentTypes(),
-        dataService.getBusinessCategories()
-      ]);
-      setEntrepreneurs(e);
-      setEstablishmentTypes(et);
-      setBusinessCategories(bc);
-    };
-    if (!isLoading) syncData();
-  }, [isLoading]);
+    if (data.entrepreneurs) setEntrepreneurs(data.entrepreneurs);
+    if (data.establishmentTypes) setEstablishmentTypes(data.establishmentTypes);
+    if (data.businessCategories) setBusinessCategories(data.businessCategories);
+  }, [data.entrepreneurs, data.establishmentTypes, data.businessCategories]);
 
 
   // Force card view on mobile

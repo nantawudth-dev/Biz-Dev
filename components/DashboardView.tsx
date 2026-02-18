@@ -34,7 +34,7 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
     const [courses, setCourses] = useState<Course[]>([]);
     const [consultants, setConsultants] = useState<Consultant[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const { fetchData } = useData();
+    const { data, fetchData } = useData();
     const { showNotification } = useNotification();
 
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -48,7 +48,7 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [selectedStatus, setSelectedStatus] = useState<string>('All');
 
-    // Fetch data using DataContext
+    // Fetch data using DataContext on mount
     useEffect(() => {
         const loadDashboardData = async () => {
             try {
@@ -69,22 +69,13 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
         loadDashboardData();
     }, [fetchData, showNotification]);
 
-    // Derived data from DataContext or local state
+    // Sync from DataContext when the cached data changes
     useEffect(() => {
-        const syncData = async () => {
-            const [e, p, c, con] = await Promise.all([
-                dataService.getEntrepreneurs(),
-                dataService.getProjects(),
-                dataService.getCourses(),
-                dataService.getConsultants()
-            ]);
-            setEntrepreneurs(e);
-            setProjects(p);
-            setCourses(c);
-            setConsultants(con);
-        };
-        if (!isLoading) syncData();
-    }, [isLoading]);
+        if (data.entrepreneurs) setEntrepreneurs(data.entrepreneurs);
+        if (data.projects) setProjects(data.projects);
+        if (data.courses) setCourses(data.courses);
+        if (data.consultants) setConsultants(data.consultants);
+    }, [data.entrepreneurs, data.projects, data.courses, data.consultants]);
 
     // Force card view on mobile
     useEffect(() => {

@@ -18,7 +18,7 @@ const emptyUserForm: Omit<UserAccount, 'id'> = {
 };
 
 const UserManagementView: React.FC<UserManagementViewProps> = () => {
-  const { fetchData, invalidateCache } = useData();
+  const { data, fetchData, invalidateCache } = useData();
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -34,7 +34,6 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
     const loadUserData = async () => {
       try {
         setIsLoading(true);
-        // Using a custom key for profiles if needed, or reusing projects key if they are related (usually separate)
         await fetchData('profiles', () => dataService.getProfiles());
       } catch (error) {
         console.error('Error loading users:', error);
@@ -46,11 +45,10 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
     loadUserData();
   }, [fetchData, showNotification]);
 
-  // Sync users from context
+  // Sync users from DataContext when the cached data changes
   useEffect(() => {
-    const syncUsers = async () => {
-      const profiles = await dataService.getProfiles();
-      const mappedUsers: UserAccount[] = profiles.map((p: any) => ({
+    if (data.profiles) {
+      const mappedUsers: UserAccount[] = data.profiles.map((p: any) => ({
         id: p.id,
         username: p.username,
         email: p.email,
@@ -58,9 +56,8 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
         isActive: p.is_active
       }));
       setUsers(mappedUsers);
-    };
-    if (!isLoading) syncUsers();
-  }, [isLoading]);
+    }
+  }, [data.profiles]);
 
   const handleOpenEditModal = (user: UserAccount) => {
     setEditingUser(user);

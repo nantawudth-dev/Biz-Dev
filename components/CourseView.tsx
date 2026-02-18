@@ -174,14 +174,14 @@ const CourseView: React.FC = () => { // Removed props
   const { isAdmin, isOfficer } = useAuth();
   const userRole: Role = isAdmin ? 'admin' : isOfficer ? 'officer' : 'user';
 
-  const { fetchData, invalidateCache } = useData();
+  const { data, fetchData, invalidateCache } = useData();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { showNotification } = useNotification();
 
   const [displayMode, setDisplayMode] = useState<'card' | 'list'>('card');
 
-  // Fetch data using DataContext
+  // Fetch data using DataContext on mount
   useEffect(() => {
     const loadCourseData = async () => {
       try {
@@ -197,14 +197,10 @@ const CourseView: React.FC = () => { // Removed props
     loadCourseData();
   }, [fetchData, showNotification]);
 
-  // Sync from context
+  // Sync from DataContext when the cached data changes
   useEffect(() => {
-    const syncCourses = async () => {
-      const data = await dataService.getCourses();
-      setCourses(data);
-    };
-    if (!isLoading) syncCourses();
-  }, [isLoading]);
+    if (data.courses) setCourses(data.courses);
+  }, [data.courses]);
 
   // Force card view on mobile
   useEffect(() => {

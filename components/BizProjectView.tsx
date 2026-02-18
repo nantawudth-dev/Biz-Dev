@@ -6,6 +6,7 @@ import { PROJECT_CATEGORIES, FISCAL_YEARS } from '../constants'; // Import const
 import Pagination from './Pagination';
 import { useNotification } from '../contexts/NotificationContext';
 import { dataService } from '../services/dataService';
+import { useData } from '../contexts/DataContext';
 
 const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number | string; gradient: string }> = ({ icon, label, value, gradient }) => (
     <div className={`relative overflow-hidden rounded-xl shadow-lg p-6 flex items-center gap-6 ${gradient} text-white`}>
@@ -24,20 +25,20 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number |
 );
 
 
-const BizProjectView: React.FC = () => { // Removed props
+const BizProjectView: React.FC = () => {
     const [projects, setProjects] = useState<Project[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const { data, fetchData } = useData();
     const { showNotification } = useNotification();
 
     const [displayMode, setDisplayMode] = useState<'card' | 'list'>('list');
 
-    // Fetch data on mount
+    // Fetch data using DataContext on mount
     useEffect(() => {
-        const fetchData = async () => {
+        const loadProjectData = async () => {
             try {
                 setIsLoading(true);
-                const fetchedProjects = await dataService.getProjects();
-                setProjects(fetchedProjects);
+                await fetchData('projects', () => dataService.getProjects());
             } catch (error) {
                 console.error('Failed to fetch project data:', error);
                 showNotification('ไม่สามารถโหลดข้อมูลโครงการได้', 'error');
@@ -45,8 +46,17 @@ const BizProjectView: React.FC = () => { // Removed props
                 setIsLoading(false);
             }
         };
-        fetchData();
-    }, [showNotification]);
+        loadProjectData();
+    }, [fetchData, showNotification]);
+
+    // Sync and filter from DataContext when the cached data changes
+    useEffect(() => {
+        if (data.projects) {
+            // Filter for Biz-Lab projects only
+            const bizProjects = data.projects.filter((p: Project) => p.category === 'Biz-Lab');
+            setProjects(bizProjects);
+        }
+    }, [data.projects]);
 
     // Force card view on mobile
     useEffect(() => {

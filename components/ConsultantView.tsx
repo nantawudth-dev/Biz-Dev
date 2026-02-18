@@ -24,7 +24,7 @@ const ConsultantView: React.FC = () => { // Removed props
   const { isAdmin, isOfficer } = useAuth();
   const userRole: Role = isAdmin ? 'admin' : isOfficer ? 'officer' : 'user';
 
-  const { fetchData, invalidateCache } = useData();
+  const { data, fetchData, invalidateCache } = useData();
   const [consultants, setConsultants] = useState<Consultant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [displayMode, setDisplayMode] = useState<'card' | 'list'>('card');
@@ -40,7 +40,7 @@ const ConsultantView: React.FC = () => { // Removed props
   const [itemsPerPage, setItemsPerPage] = useState(9);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch data using DataContext
+  // Fetch data using DataContext on mount
   useEffect(() => {
     const loadConsultantData = async () => {
       try {
@@ -56,14 +56,10 @@ const ConsultantView: React.FC = () => { // Removed props
     loadConsultantData();
   }, [fetchData, showNotification]);
 
-  // Sync from context
+  // Sync from DataContext when the cached data changes
   useEffect(() => {
-    const syncConsultants = async () => {
-      const data = await dataService.getConsultants();
-      setConsultants(data);
-    };
-    if (!isLoading) syncConsultants();
-  }, [isLoading]);
+    if (data.consultants) setConsultants(data.consultants);
+  }, [data.consultants]);
 
   // Force card view on mobile
   useEffect(() => {
