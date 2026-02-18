@@ -49,6 +49,9 @@ const ProjectView: React.FC = () => { // Removed props
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
+  const [entrepreneurSearch, setEntrepreneurSearch] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
   const { data, fetchData, invalidateCache } = useData();
   const { showNotification } = useNotification();
 
@@ -95,14 +98,21 @@ const ProjectView: React.FC = () => { // Removed props
   const handleOpenAdd = () => {
     setEditingProject(null);
     setFormData({ ...emptyProject, budget: 0 });
+    setEntrepreneurSearch('');
     setIsFormOpen(true);
   };
 
   const handleEditProject = (project: Project) => {
     setEditingProject(project);
     setFormData({ ...project });
+    setEntrepreneurSearch(project.entrepreneur);
     setIsFormOpen(true);
   };
+
+  const filteredEntrepreneursForForm = entrepreneurs.filter(ent =>
+    ent.businessName.toLowerCase().includes(entrepreneurSearch.toLowerCase()) ||
+    ent.name.toLowerCase().includes(entrepreneurSearch.toLowerCase())
+  );
 
   const handleOpenReport = (project: Project) => {
     setReportingProject(project);
@@ -291,9 +301,53 @@ const ProjectView: React.FC = () => { // Removed props
               </div>
             </div>
 
-            <div className="md:col-span-1">
+            <div className="md:col-span-1 relative">
               <label className="block text-sm font-medium text-slate-700 mb-1">ผู้ประกอบการ/หน่วยงาน</label>
-              <input type="text" placeholder="ระบุผู้ประกอบการ/หน่วยงาน" value={formData.entrepreneur} onChange={(e) => setFormData({ ...formData, entrepreneur: e.target.value, entrepreneurId: undefined })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="ระบุผู้ประกอบการ/หน่วยงาน"
+                  value={entrepreneurSearch}
+                  onChange={(e) => {
+                    setEntrepreneurSearch(e.target.value);
+                    setFormData({ ...formData, entrepreneur: e.target.value, entrepreneurId: undefined });
+                    setIsDropdownOpen(true);
+                  }}
+                  onFocus={() => setIsDropdownOpen(true)}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+                />
+
+                {isDropdownOpen && (entrepreneurSearch || filteredEntrepreneursForForm.length > 0) && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
+                    {filteredEntrepreneursForForm.length > 0 ? (
+                      filteredEntrepreneursForForm.map(ent => (
+                        <button
+                          key={ent.id}
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, entrepreneur: ent.businessName, entrepreneurId: ent.id });
+                            setEntrepreneurSearch(ent.businessName);
+                            setIsDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0 flex flex-col"
+                        >
+                          <span className="font-semibold text-slate-800">{ent.businessName}</span>
+                          <span className="text-xs text-slate-500">ผู้ติดต่อ: {ent.name}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-3 text-slate-500 text-sm italic">ไม่พบข้อมูล (คุณสามารถพิมพ์ชื่อใหม่ได้)</div>
+                    )}
+                  </div>
+                )}
+
+                {isDropdownOpen && (
+                  <div
+                    className="fixed inset-0 z-0"
+                    onClick={() => setIsDropdownOpen(false)}
+                  ></div>
+                )}
+              </div>
             </div>
 
             <div className="md:col-span-1">

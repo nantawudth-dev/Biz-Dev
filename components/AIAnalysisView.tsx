@@ -15,6 +15,8 @@ const AIAnalysisView: React.FC = () => { // Removed props
     const { showNotification } = useNotification();
 
     const [selectedEntrepreneurId, setSelectedEntrepreneurId] = useState<string>('');
+    const [entrepreneurSearch, setEntrepreneurSearch] = useState<string>('');
+    const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
     const [problemDescription, setProblemDescription] = useState<string>('');
     const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
     const [analysisResult, setAnalysisResult] = useState<string | null>(null);
@@ -182,6 +184,17 @@ const AIAnalysisView: React.FC = () => { // Removed props
         }
     };
 
+    const filteredEntrepreneurs = entrepreneurs.filter(ent =>
+        ent.businessName.toLowerCase().includes(entrepreneurSearch.toLowerCase()) ||
+        ent.name.toLowerCase().includes(entrepreneurSearch.toLowerCase())
+    );
+
+    const handleSelectEntrepreneur = (ent: Entrepreneur) => {
+        setSelectedEntrepreneurId(ent.id);
+        setEntrepreneurSearch(`${ent.businessName} (${ent.name})`);
+        setIsDropdownOpen(false);
+    };
+
     if (isLoadingData) {
         return (
             <div className="flex flex-col items-center justify-center py-20">
@@ -203,18 +216,62 @@ const AIAnalysisView: React.FC = () => { // Removed props
                         </h3>
 
                         <div className="space-y-4">
-                            <div>
+                            <div className="relative">
                                 <label className="block text-sm font-medium text-slate-700 mb-1">เลือกผู้ประกอบการ</label>
-                                <select
-                                    value={selectedEntrepreneurId}
-                                    onChange={(e) => setSelectedEntrepreneurId(e.target.value)}
-                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                >
-                                    <option value="">-- เลือกผู้ประกอบการ --</option>
-                                    {entrepreneurs.map(ent => (
-                                        <option key={ent.id} value={ent.id}>{ent.businessName} ({ent.name})</option>
-                                    ))}
-                                </select>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={entrepreneurSearch}
+                                        onChange={(e) => {
+                                            setEntrepreneurSearch(e.target.value);
+                                            setIsDropdownOpen(true);
+                                            if (e.target.value === '') setSelectedEntrepreneurId('');
+                                        }}
+                                        onFocus={() => setIsDropdownOpen(true)}
+                                        placeholder="พิมพ์เพื่อค้นหาชื่อบริษัทหรือผู้ประกอบการ..."
+                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none pr-10"
+                                    />
+                                    {entrepreneurSearch && (
+                                        <button
+                                            onClick={() => {
+                                                setEntrepreneurSearch('');
+                                                setSelectedEntrepreneurId('');
+                                                setIsDropdownOpen(false);
+                                            }}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                        >
+                                            <ArrowPathIcon className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+
+                                {isDropdownOpen && (entrepreneurSearch || filteredEntrepreneurs.length > 0) && (
+                                    <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                        {filteredEntrepreneurs.length > 0 ? (
+                                            filteredEntrepreneurs.map(ent => (
+                                                <button
+                                                    key={ent.id}
+                                                    onClick={() => handleSelectEntrepreneur(ent)}
+                                                    className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0 flex flex-col
+                                                        ${selectedEntrepreneurId === ent.id ? 'bg-blue-50' : ''}
+                                                    `}
+                                                >
+                                                    <span className="font-semibold text-slate-800">{ent.businessName}</span>
+                                                    <span className="text-xs text-slate-500">ผู้ประกอบการ: {ent.name}</span>
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className="px-4 py-3 text-slate-500 text-sm italic">ไม่พบข้อมูลผู้ประกอบการ</div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {isDropdownOpen && (
+                                    <div
+                                        className="fixed inset-0 z-0"
+                                        onClick={() => setIsDropdownOpen(false)}
+                                    ></div>
+                                )}
                             </div>
 
                             <div>
