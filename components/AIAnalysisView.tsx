@@ -27,7 +27,11 @@ const AIAnalysisView: React.FC = () => { // Removed props
     useEffect(() => {
         const loadAIAnalysisData = async () => {
             try {
-                setIsLoadingData(true);
+                const hasAllData = data.entrepreneurs && data.consultants && data.courses;
+                if (!hasAllData) {
+                    setIsLoadingData(true);
+                }
+
                 await Promise.all([
                     fetchData('entrepreneurs', () => dataService.getEntrepreneurs()),
                     fetchData('consultants', () => dataService.getConsultants()),
@@ -41,7 +45,7 @@ const AIAnalysisView: React.FC = () => { // Removed props
             }
         };
         loadAIAnalysisData();
-    }, [fetchData, showNotification]);
+    }, [fetchData, showNotification, data.entrepreneurs, data.consultants, data.courses]);
 
     // Sync from DataContext when the cached data changes
     useEffect(() => {

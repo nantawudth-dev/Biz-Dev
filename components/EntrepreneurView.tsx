@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Entrepreneur, Role } from '../types';
 import Modal from './Modal';
-import { PlusIcon, BuildingIcon, PhoneIcon, PencilIcon, TrashIcon, ExclamationTriangleIcon, Squares2X2Icon, ListBulletIcon, BriefcaseIcon, UserGroupIcon, EyeIcon, ChevronDownIcon, FunnelIcon, MagnifyingGlassIcon, ArrowLeftIcon } from './icons';
+import { PlusIcon, BuildingIcon, PhoneIcon, PencilIcon, TrashIcon, ExclamationTriangleIcon, Squares2X2Icon, ListBulletIcon, BriefcaseIcon, UserGroupIcon, EyeIcon, ChevronDownIcon, FunnelIcon, MagnifyingGlassIcon, ArrowLeftIcon, BuildingOffice2Icon } from './icons';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext'; // Added useAuth
 import { dataService } from '../services/dataService';
@@ -153,12 +153,12 @@ const EntrepreneurView: React.FC = () => { // Removed props
   useEffect(() => {
     const loadEntrepreneurData = async () => {
       try {
-        setIsLoading(true);
-        await Promise.all([
-          fetchData('entrepreneurs', () => dataService.getEntrepreneurs()),
-          fetchData('establishmentTypes', () => dataService.getEstablishmentTypes()),
-          fetchData('businessCategories', () => dataService.getBusinessCategories())
-        ]);
+        if (!data.entrepreneurs) {
+          setIsLoading(true);
+        }
+        await fetchData('entrepreneurs', () => dataService.getEntrepreneurs());
+        await fetchData('establishmentTypes', () => dataService.getEstablishmentTypes());
+        await fetchData('businessCategories', () => dataService.getBusinessCategories());
       } catch (error) {
         console.error('Failed to fetch entrepreneurs or metadata:', error);
         showNotification('ไม่สามารถโหลดข้อมูลผู้ประกอบการได้', 'error');
@@ -167,7 +167,7 @@ const EntrepreneurView: React.FC = () => { // Removed props
       }
     };
     loadEntrepreneurData();
-  }, [fetchData, showNotification]);
+  }, [fetchData, showNotification, data.entrepreneurs]);
 
   // Sync from DataContext when the cached data changes
   useEffect(() => {
@@ -213,12 +213,14 @@ const EntrepreneurView: React.FC = () => { // Removed props
           ...formData
         });
         invalidateCache('entrepreneurs');
+        await fetchData('entrepreneurs', () => dataService.getEntrepreneurs());
         setEntrepreneurs(entrepreneurs.map(ent => (ent.id === editingEntrepreneur.id ? { ...formData, id: ent.id } : ent)));
         showNotification('บันทึกข้อมูลผู้ประกอบการสำเร็จ', 'success');
       } else {
         const newEnt = await dataService.createEntrepreneur(formData);
         if (newEnt) {
           invalidateCache('entrepreneurs');
+          await fetchData('entrepreneurs', () => dataService.getEntrepreneurs());
           setEntrepreneurs([newEnt, ...entrepreneurs]);
           showNotification('เพิ่มผู้ประกอบการใหม่สำเร็จ', 'success');
         }
@@ -235,6 +237,7 @@ const EntrepreneurView: React.FC = () => { // Removed props
       try {
         await dataService.deleteEntrepreneur(deletingEntrepreneur.id);
         invalidateCache('entrepreneurs');
+        await fetchData('entrepreneurs', () => dataService.getEntrepreneurs());
         setEntrepreneurs(entrepreneurs.filter(ent => ent.id !== deletingEntrepreneur.id));
         showNotification('ลบผู้ประกอบการสำเร็จ', 'delete');
         handleCloseDeleteModal();
@@ -278,151 +281,150 @@ const EntrepreneurView: React.FC = () => { // Removed props
   }
 
   // View: Add/Edit Form
-  if (isFormOpen) {
-    return (
-      <div className="max-w-4xl mx-auto animate-fade-in">
-        <div className="flex items-center mb-6">
-          <button
-            onClick={handleBackToList}
-            className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
-          >
-            <ArrowLeftIcon className="w-6 h-6" />
-          </button>
+  const formView = isFormOpen ? (
+    <div className="max-w-4xl mx-auto animate-fade-in shadow-xl">
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={handleBackToList}
+          className="mr-2 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
+        >
+          <ArrowLeftIcon className="w-6 h-6" />
+        </button>
+        <div className="flex items-center gap-3">
+          <BuildingOffice2Icon className="w-8 h-8 text-blue-600" />
           <h2 className="text-2xl font-medium font-title text-slate-900">{editingEntrepreneur ? 'แก้ไขข้อมูลผู้ประกอบการ' : 'เพิ่มผู้ประกอบการใหม่'}</h2>
         </div>
-
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อสถานประกอบการ</label>
-                <input type="text" placeholder="ชื่อสถานประกอบการ" value={formData.businessName} onChange={e => setFormData({ ...formData, businessName: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
-              </div>
-
-              <div className="md:col-span-1 relative">
-                <label className="block text-sm font-medium text-slate-700 mb-1">ประเภท</label>
-                <div className="relative">
-                  <select value={formData.establishmentType} onChange={e => setFormData({ ...formData, establishmentType: e.target.value })} className="w-full px-4 py-2 pr-10 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none font-body" required>
-                    <option value="" disabled>เลือกประเภท</option>
-                    {establishmentTypes.map(type => (<option key={type} value={type}>{type}</option>))}
-                  </select>
-                  <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="md:col-span-1 relative">
-                <label className="block text-sm font-medium text-slate-700 mb-1">หมวดธุรกิจ</label>
-                <div className="relative">
-                  <select value={formData.businessCategory} onChange={e => setFormData({ ...formData, businessCategory: e.target.value })} className="w-full px-4 py-2 pr-10 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none font-body" required>
-                    <option value="" disabled>เลือกหมวดธุรกิจ</option>
-                    {businessCategories.map(type => (<option key={type} value={type}>{type}</option>))}
-                  </select>
-                  <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อผู้ติดต่อ</label>
-                <input type="text" placeholder="ชื่อผู้ติดต่อ" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
-              </div>
-
-              <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อเล่น (ไม่บังคับ)</label>
-                <input type="text" placeholder="ชื่อเล่น" value={formData.nickname || ''} onChange={e => setFormData({ ...formData, nickname: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-              </div>
-
-              <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-slate-700 mb-1">เบอร์โทร</label>
-                <input type="text" placeholder="เบอร์โทร" value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-              </div>
-
-              <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Line ID</label>
-                <input type="text" placeholder="Line ID" value={formData.lineId} onChange={e => setFormData({ ...formData, lineId: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-              </div>
-
-              <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Facebook</label>
-                <input type="text" placeholder="Facebook" value={formData.facebook} onChange={e => setFormData({ ...formData, facebook: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">ที่อยู่</label>
-              <textarea placeholder="ที่อยู่" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors h-24 font-body" />
-            </div>
-
-            <div className="flex justify-end pt-4 gap-3">
-              <button type="button" onClick={handleBackToList} className="bg-gradient-to-r from-orange-400 to-amber-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-colors shadow-md">ยกเลิก</button>
-              <button type="submit" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-colors shadow-md">{editingEntrepreneur ? 'บันทึกข้อมูลผู้ประกอบการ' : 'บันทึกข้อมูลผู้ประกอบการ'}</button>
-            </div>
-          </form>
-        </div>
       </div>
-    );
-  }
+
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm p-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1 font-title">ชื่อสถานประกอบการ (ทางการ)</label>
+              <input type="text" placeholder="ชื่อสถานประกอบการ" value={formData.businessName} onChange={e => setFormData({ ...formData, businessName: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
+            </div>
+
+            <div className="md:col-span-1 relative">
+              <label className="block text-sm font-medium text-slate-700 mb-1">ประเภท</label>
+              <div className="relative">
+                <select value={formData.establishmentType} onChange={e => setFormData({ ...formData, establishmentType: e.target.value })} className="w-full px-4 py-2 pr-10 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none font-body" required>
+                  <option value="" disabled>เลือกประเภท</option>
+                  {establishmentTypes.map(type => (<option key={type} value={type}>{type}</option>))}
+                </select>
+                <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
+
+            <div className="md:col-span-1 relative">
+              <label className="block text-sm font-medium text-slate-700 mb-1">หมวดธุรกิจ</label>
+              <div className="relative">
+                <select value={formData.businessCategory} onChange={e => setFormData({ ...formData, businessCategory: e.target.value })} className="w-full px-4 py-2 pr-10 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none font-body" required>
+                  <option value="" disabled>เลือกหมวดธุรกิจ</option>
+                  {businessCategories.map(type => (<option key={type} value={type}>{type}</option>))}
+                </select>
+                <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อผู้ติดต่อ</label>
+              <input type="text" placeholder="ชื่อผู้ติดต่อ" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อเล่น (ไม่บังคับ)</label>
+              <input type="text" placeholder="ชื่อเล่น" value={formData.nickname || ''} onChange={e => setFormData({ ...formData, nickname: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">เบอร์โทร</label>
+              <input type="text" placeholder="เบอร์โทร" value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Line ID</label>
+              <input type="text" placeholder="Line ID" value={formData.lineId} onChange={e => setFormData({ ...formData, lineId: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Facebook</label>
+              <input type="text" placeholder="Facebook" value={formData.facebook} onChange={e => setFormData({ ...formData, facebook: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">ที่อยู่</label>
+            <textarea placeholder="ที่อยู่" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors h-24 font-body" />
+          </div>
+
+          <div className="flex justify-end pt-4 gap-3">
+            <button type="button" onClick={handleBackToList} className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-lg font-semibold hover:bg-slate-200 transition-colors">ยกเลิก</button>
+            <button type="submit" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-colors shadow-md">{editingEntrepreneur ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  ) : null;
 
   // View: Details
-  if (viewingEntrepreneur) {
-    return (
-      <div className="max-w-4xl mx-auto animate-fade-in">
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={handleBackToList}
-            className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
-          >
-            <ArrowLeftIcon className="w-6 h-6" />
-          </button>
-          <div className="flex items-center gap-3">
-            <BriefcaseIcon className="w-8 h-8 text-emerald-600" />
-            <h2 className="text-3xl font-medium font-title text-slate-900">{viewingEntrepreneur.businessName}</h2>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-8 space-y-6 font-body">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ประเภทสถานประกอบการ</label>
-              <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.establishmentType}</p>
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">หมวดธุรกิจ</label>
-              <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.businessCategory}</p>
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ผู้ติดต่อ</label>
-              <p className="text-lg font-medium text-slate-900 mt-1">
-                {viewingEntrepreneur.name}
-                {viewingEntrepreneur.nickname && <span className="text-slate-500 text-base font-normal"> ({viewingEntrepreneur.nickname})</span>}
-              </p>
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">เบอร์โทร</label>
-              <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.contact || '-'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Line ID</label>
-              <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.lineId || '-'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Facebook</label>
-              <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.facebook || '-'}</p>
-            </div>
-          </div>
-
-          {viewingEntrepreneur.address && (
-            <div className="border-t border-slate-200 pt-6">
-              <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ที่อยู่</label>
-              <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.address}</p>
-            </div>
-          )}
+  const detailsView = viewingEntrepreneur ? (
+    <div className="max-w-4xl mx-auto animate-fade-in">
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={handleBackToList}
+          className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
+        >
+          <ArrowLeftIcon className="w-6 h-6" />
+        </button>
+        <div className="flex items-center gap-3">
+          <BriefcaseIcon className="w-8 h-8 text-emerald-600" />
+          <h2 className="text-3xl font-medium font-title text-slate-900">{viewingEntrepreneur.businessName}</h2>
         </div>
       </div>
-    );
-  }
 
-  // View: List (Default)
-  return (
+      <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-8 space-y-6 font-body">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ประเภทสถานประกอบการ</label>
+            <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.establishmentType}</p>
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">หมวดธุรกิจ</label>
+            <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.businessCategory}</p>
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ผู้ติดต่อ</label>
+            <p className="text-lg font-medium text-slate-900 mt-1">
+              {viewingEntrepreneur.name}
+              {viewingEntrepreneur.nickname && <span className="text-slate-500 text-base font-normal"> ({viewingEntrepreneur.nickname})</span>}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">เบอร์โทร</label>
+            <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.contact || '-'}</p>
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Line ID</label>
+            <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.lineId || '-'}</p>
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Facebook</label>
+            <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.facebook || '-'}</p>
+          </div>
+        </div>
+
+        {viewingEntrepreneur.address && (
+          <div className="border-t border-slate-200 pt-6">
+            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ที่อยู่</label>
+            <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.address}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  ) : null;
+
+  // View: List
+  const listView = (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
         <div className="w-full md:w-auto md:flex-1 relative">
@@ -533,6 +535,25 @@ const EntrepreneurView: React.FC = () => { // Removed props
         </div>
       )}
 
+
+    </div>
+  );
+
+  return (
+    <div className="p-6 min-h-screen bg-slate-50">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200">
+            <BuildingOffice2Icon className="w-8 h-8 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold font-title text-slate-900">บัญชีผู้ประกอบการ</h1>
+            <p className="text-slate-500 font-body text-sm">จัดการข้อมูลผู้ประกอบการและเครือข่ายธุรกิจ</p>
+          </div>
+        </div>
+      </div>
+
+      {isFormOpen ? formView : viewingEntrepreneur ? detailsView : listView}
     </div>
   );
 };

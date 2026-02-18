@@ -22,20 +22,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [data, setData] = useState<Record<string, any>>({});
 
     const fetchData = useCallback(async <T,>(key: string, fetcher: () => Promise<T>): Promise<T> => {
-        console.log(`[DataContext] Fetching: ${key}`);
-
         // Check cache first
         const cached = cache.current.get(key);
         if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-            console.log(`[DataContext] Cache hit: ${key}`);
+            console.log(`%c[CACHE HIT] ${key}`, 'color: green; font-weight: bold;');
             return cached.data as T;
         }
 
         // Check if request is already in-flight
         if (inFlightRequests.current.has(key)) {
-            console.log(`[DataContext] Deduplicating request: ${key}`);
+            console.log(`%c[DEDUPE] ${key}`, 'color: blue; font-weight: bold;');
             return inFlightRequests.current.get(key) as Promise<T>;
         }
+
+        console.log(`%c[API FETCH] ${key}`, 'color: orange; font-weight: bold;');
 
         // Fetch data
         const request = fetcher()
@@ -52,12 +52,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // Remove from in-flight
                 inFlightRequests.current.delete(key);
 
-                console.log(`[DataContext] Cached: ${key}`);
+                console.log(`%c[FETCH DONE] ${key}`, 'color: green;');
                 return result;
             })
             .catch((error) => {
                 // Remove from in-flight on error
                 inFlightRequests.current.delete(key);
+                console.error(`%c[FETCH ERROR] ${key}`, 'color: red;', error);
                 throw error;
             });
 

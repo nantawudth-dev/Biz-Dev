@@ -33,7 +33,9 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        setIsLoading(true);
+        if (!data.profiles) {
+          setIsLoading(true);
+        }
         await fetchData('profiles', () => dataService.getProfiles());
       } catch (error) {
         console.error('Error loading users:', error);
@@ -43,7 +45,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
       }
     };
     loadUserData();
-  }, [fetchData, showNotification]);
+  }, [fetchData, showNotification, data.profiles]);
 
   // Sync users from DataContext when the cached data changes
   useEffect(() => {

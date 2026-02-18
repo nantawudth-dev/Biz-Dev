@@ -52,7 +52,12 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
     useEffect(() => {
         const loadDashboardData = async () => {
             try {
-                setIsLoading(true);
+                // Only show loading if we don't have data yet
+                const hasAllData = data.entrepreneurs && data.projects && data.courses && data.consultants;
+                if (!hasAllData) {
+                    setIsLoading(true);
+                }
+
                 await Promise.all([
                     fetchData('entrepreneurs', () => dataService.getEntrepreneurs()),
                     fetchData('projects', () => dataService.getProjects()),
@@ -67,7 +72,7 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
             }
         };
         loadDashboardData();
-    }, [fetchData, showNotification]);
+    }, [fetchData, showNotification, data.entrepreneurs, data.projects, data.courses, data.consultants]);
 
     // Sync from DataContext when the cached data changes
     useEffect(() => {

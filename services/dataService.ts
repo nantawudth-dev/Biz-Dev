@@ -16,16 +16,16 @@ export const dataService = {
 
         return (data || []).map((item: any) => ({
             id: item.id,
-            businessName: item.business_name,
-            establishmentType: item.establishment_type,
-            businessCategory: item.business_category,
-            name: item.contact_name,
-            address: item.address,
-            contact: item.phone, // Mapping phone to contact prop as per generic usage
-            phone: item.phone,
-            lineId: item.line_id,
-            facebook: item.facebook,
-            nickname: item.nickname,
+            businessName: item.business_name || '',
+            establishmentType: item.establishment_type || '',
+            businessCategory: item.business_category || '',
+            name: item.contact_name || '',
+            address: item.address || '',
+            contact: item.phone || '', // Mapping phone to contact prop as per generic usage
+            phone: item.phone || '',
+            lineId: item.line_id || '',
+            facebook: item.facebook || '',
+            nickname: item.nickname || '',
         }));
     },
 
@@ -54,30 +54,30 @@ export const dataService = {
 
         return {
             id: data.id,
-            businessName: data.business_name,
-            establishmentType: data.establishment_type,
-            businessCategory: data.business_category,
-            name: data.contact_name,
-            address: data.address,
-            contact: data.phone,
-            phone: data.phone,
-            lineId: data.line_id,
-            facebook: data.facebook,
-            nickname: data.nickname
+            businessName: data.business_name || '',
+            establishmentType: data.establishment_type || '',
+            businessCategory: data.business_category || '',
+            name: data.contact_name || '',
+            address: data.address || '',
+            contact: data.phone || '',
+            phone: data.phone || '',
+            lineId: data.line_id || '',
+            facebook: data.facebook || '',
+            nickname: data.nickname || ''
         };
     },
 
     async updateEntrepreneur(id: string, entrepreneur: Partial<Entrepreneur>): Promise<void> {
         const updates: any = {};
-        if (entrepreneur.businessName) updates.business_name = entrepreneur.businessName;
-        if (entrepreneur.establishmentType) updates.establishment_type = entrepreneur.establishmentType;
-        if (entrepreneur.businessCategory) updates.business_category = entrepreneur.businessCategory;
-        if (entrepreneur.name) updates.contact_name = entrepreneur.name;
-        if (entrepreneur.address) updates.address = entrepreneur.address;
-        if (entrepreneur.phone || entrepreneur.contact) updates.phone = entrepreneur.phone || entrepreneur.contact;
-        if (entrepreneur.lineId) updates.line_id = entrepreneur.lineId;
-        if (entrepreneur.facebook) updates.facebook = entrepreneur.facebook;
-        if (entrepreneur.nickname) updates.nickname = entrepreneur.nickname;
+        if (entrepreneur.businessName !== undefined) updates.business_name = entrepreneur.businessName;
+        if (entrepreneur.establishmentType !== undefined) updates.establishment_type = entrepreneur.establishmentType;
+        if (entrepreneur.businessCategory !== undefined) updates.business_category = entrepreneur.businessCategory;
+        if (entrepreneur.name !== undefined) updates.contact_name = entrepreneur.name;
+        if (entrepreneur.address !== undefined) updates.address = entrepreneur.address;
+        if (entrepreneur.phone !== undefined) updates.phone = entrepreneur.phone;
+        if (entrepreneur.lineId !== undefined) updates.line_id = entrepreneur.lineId;
+        if (entrepreneur.facebook !== undefined) updates.facebook = entrepreneur.facebook;
+        if (entrepreneur.nickname !== undefined) updates.nickname = entrepreneur.nickname;
 
         const { error } = await supabase
             .from('entrepreneurs')
@@ -121,18 +121,16 @@ export const dataService = {
 
         return (data || []).map((item: any) => ({
             id: item.id,
-            name: item.name,
-            description: item.description,
-            entrepreneur: item.entrepreneurs?.business_name || 'Unknown', // Flattening the relationship for the view
-            status: item.status,
-            category: item.category,
-            projectLeader: item.project_leader,
-            coProjectLeader: item.co_project_leader,
-            budget: item.budget,
-            fiscalYear: item.fiscal_year,
-            outcome: item.outcome,
-            completeReportLink: item.complete_report_link,
-            // Store the ID as well if needed for updates, though the type might not have it strictly defined yet
+            name: item.name || '',
+            description: item.description || '',
+            status: item.status || 'Planned',
+            category: item.category || 'General',
+            projectLeader: item.project_leader || '',
+            coProjectLeader: item.co_project_leader || '',
+            budget: item.budget || 0,
+            fiscalYear: item.fiscal_year || '',
+            outcome: item.outcome || '',
+            completeReportLink: item.complete_report_link || '',
             entrepreneurId: item.entrepreneur_id,
             entrepreneur: item.entrepreneur || item.entrepreneurs?.business_name || 'Unknown'
         }));
@@ -187,17 +185,16 @@ export const dataService = {
 
     async updateProject(id: string, project: Partial<Project>): Promise<void> {
         const updates: any = {};
-        if (project.name) updates.name = project.name;
-        if (project.description) updates.description = project.description;
-        if (project.status) updates.status = project.status;
-        if (project.category) updates.category = project.category;
-        if (project.projectLeader) updates.project_leader = project.projectLeader;
-        if (project.coProjectLeader) updates.co_project_leader = project.coProjectLeader;
-        if (project.budget) updates.budget = project.budget;
-        if (project.fiscalYear) updates.fiscal_year = project.fiscalYear;
-        if (project.outcome) updates.outcome = project.outcome;
-        if (project.completeReportLink) updates.complete_report_link = project.completeReportLink;
-        if (project.completeReportLink) updates.complete_report_link = project.completeReportLink;
+        if (project.name !== undefined) updates.name = project.name;
+        if (project.description !== undefined) updates.description = project.description;
+        if (project.status !== undefined) updates.status = project.status;
+        if (project.category !== undefined) updates.category = project.category;
+        if (project.projectLeader !== undefined) updates.project_leader = project.projectLeader;
+        if (project.coProjectLeader !== undefined) updates.co_project_leader = project.coProjectLeader;
+        if (project.budget !== undefined) updates.budget = project.budget;
+        if (project.fiscalYear !== undefined) updates.fiscal_year = project.fiscalYear;
+        if (project.outcome !== undefined) updates.outcome = project.outcome;
+        if (project.completeReportLink !== undefined) updates.complete_report_link = project.completeReportLink;
         if (project.entrepreneurId !== undefined) updates.entrepreneur_id = project.entrepreneurId || null;
         if (project.entrepreneur !== undefined) updates.entrepreneur = project.entrepreneur;
 
@@ -271,11 +268,14 @@ export const dataService = {
     async createConsultant(consultant: Omit<Consultant, 'id'>): Promise<Consultant | null> {
         const fullName = `${consultant.title} ${consultant.firstName} ${consultant.lastName}`.trim();
 
+        // Expertise is likely stored as text[] in DB based on getConsultants handling
+        const expertiseValue = consultant.expertise ? [consultant.expertise] : [];
+
         const { data, error } = await supabase
             .from('consultants')
             .insert([{
                 name: fullName,
-                expertise: consultant.expertise,
+                expertise: expertiseValue,
                 contact_email: consultant.email,
                 phone: consultant.phone,
                 workplace: consultant.workplace,
@@ -295,7 +295,7 @@ export const dataService = {
             title: consultant.title,
             firstName: consultant.firstName,
             lastName: consultant.lastName,
-            expertise: data.expertise || '',
+            expertise: consultant.expertise || '', // Return the string version we just saved
             phone: data.phone,
             workplace: data.workplace,
             email: data.contact_email,
@@ -326,7 +326,11 @@ export const dataService = {
             updates.name = `${title} ${first} ${last}`.trim();
         }
 
-        if (consultant.expertise !== undefined) updates.expertise = consultant.expertise;
+        // Wrap expertise in array if present
+        if (consultant.expertise !== undefined) {
+            updates.expertise = consultant.expertise ? [consultant.expertise] : [];
+        }
+
         if (consultant.email !== undefined) updates.contact_email = consultant.email;
         if (consultant.phone !== undefined) updates.phone = consultant.phone;
         if (consultant.workplace !== undefined) updates.workplace = consultant.workplace;
@@ -413,13 +417,13 @@ export const dataService = {
 
     async updateCourse(id: string, course: Partial<Course>): Promise<void> {
         const updates: any = {};
-        if (course.title) updates.title = course.title;
-        if (course.description) updates.description = course.description;
-        if (course.duration) updates.duration = course.duration;
-        if (course.instructor) updates.instructor = course.instructor;
-        if (course.syllabusLink) updates.syllabus_link = course.syllabusLink;
-        if (course.contactPhone) updates.contact_phone = course.contactPhone;
-        if (course.contactEmail) updates.contact_email = course.contactEmail;
+        if (course.title !== undefined) updates.title = course.title;
+        if (course.description !== undefined) updates.description = course.description;
+        if (course.duration !== undefined) updates.duration = course.duration;
+        if (course.instructor !== undefined) updates.instructor = course.instructor;
+        if (course.syllabusLink !== undefined) updates.syllabus_link = course.syllabusLink;
+        if (course.contactPhone !== undefined) updates.contact_phone = course.contactPhone;
+        if (course.contactEmail !== undefined) updates.contact_email = course.contactEmail;
 
         const { error } = await supabase
             .from('courses')

@@ -241,18 +241,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         try {
             // PROACTIVE: Clear session storage related to user session for a clean state
             if (user?.id) {
-                sessionStorage.removeItem(`welcome_shown_${user.id} `); // Remove trailing space if it was a typo in App.tsx, but match key exactly
-                // In App.tsx it's `welcome_shown_${user.id} ` (with space). Let's check App.tsx again.
+                sessionStorage.removeItem(`welcome_shown_${user.id}`);
             }
             // Also good practice to clear any other potential session data
             sessionStorage.clear();
+            localStorage.clear(); // Clear local storage too for complete cleanup
 
             const { error } = await supabase.auth.signOut();
             if (error) throw error;
-            setUser(null);
-            setSession(null);
         } catch (error) {
             console.error('Error logging out:', error);
+        } finally {
+            // Always clear local state regardless of server response
+            setUser(null);
+            setSession(null);
         }
     };
 

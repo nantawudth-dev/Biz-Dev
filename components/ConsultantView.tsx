@@ -44,7 +44,9 @@ const ConsultantView: React.FC = () => { // Removed props
   useEffect(() => {
     const loadConsultantData = async () => {
       try {
-        setIsLoading(true);
+        if (!data.consultants) {
+          setIsLoading(true);
+        }
         await fetchData('consultants', () => dataService.getConsultants());
       } catch (error) {
         console.error('Failed to fetch consultants:', error);
@@ -54,7 +56,7 @@ const ConsultantView: React.FC = () => { // Removed props
       }
     };
     loadConsultantData();
-  }, [fetchData, showNotification]);
+  }, [fetchData, showNotification, data.consultants]);
 
   // Sync from DataContext when the cached data changes
   useEffect(() => {
@@ -91,12 +93,14 @@ const ConsultantView: React.FC = () => { // Removed props
         if (editingConsultant) {
           await dataService.updateConsultant(editingConsultant.id, formData);
           invalidateCache('consultants');
+          await fetchData('consultants', () => dataService.getConsultants());
           setConsultants(consultants.map(c => c.id === editingConsultant.id ? { ...formData, id: c.id } : c));
           showNotification('แก้ไขข้อมูลที่ปรึกษาสำเร็จ', 'success');
         } else {
           const newConsultant = await dataService.createConsultant(formData);
           if (newConsultant) {
             invalidateCache('consultants');
+            await fetchData('consultants', () => dataService.getConsultants());
             setConsultants([...consultants, newConsultant]);
             showNotification('เพิ่มที่ปรึกษาใหม่สำเร็จ', 'success');
           }
@@ -114,6 +118,7 @@ const ConsultantView: React.FC = () => { // Removed props
       try {
         await dataService.deleteConsultant(deletingConsultant.id);
         invalidateCache('consultants');
+        await fetchData('consultants', () => dataService.getConsultants());
         setConsultants(consultants.filter(c => c.id !== deletingConsultant.id));
         showNotification('ลบข้อมูลที่ปรึกษาสำเร็จ', 'delete');
         handleCloseDeleteModal();
@@ -146,157 +151,153 @@ const ConsultantView: React.FC = () => { // Removed props
   }
 
   // Add/Edit Form
-  if (isFormOpen) {
-    return (
-      <div className="max-w-2xl mx-auto animate-fade-in">
-        <div className="flex items-center mb-6">
-          <button onClick={handleBackToList} className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500">
-            <ArrowLeftIcon className="w-6 h-6" />
-          </button>
-          <h2 className="text-2xl font-medium font-title text-slate-900">{editingConsultant ? 'แก้ไขข้อมูลที่ปรึกษา' : 'เพิ่มที่ปรึกษาใหม่'}</h2>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">คำนำหน้า</label>
-                <input type="text" placeholder="เช่น ดร., ผศ.ดร." value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อ</label>
-                <input type="text" placeholder="ชื่อจริง" value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">นามสกุล</label>
-                <input type="text" placeholder="นามสกุล" value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">ความเชี่ยวชาญ</label>
-                <textarea placeholder="ระบุความเชี่ยวชาญ" value={formData.expertise} onChange={e => setFormData({ ...formData, expertise: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors h-24 font-body" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">เบอร์โทรศัพท์</label>
-                <input type="text" placeholder="เบอร์โทรศัพท์ติดต่อ" value={formData.phone || ''} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">หน่วยงาน/สังกัด</label>
-                <input type="text" placeholder="ระบุหน่วยงาน" value={formData.workplace || ''} onChange={e => setFormData({ ...formData, workplace: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">อีเมล</label>
-                <input type="email" placeholder="ระบุอีเมล" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">ลิงก์รูปภาพ (Image URL)</label>
-                <div className="flex gap-4 items-start">
-                  <div className="flex-grow">
-                    <input type="text" placeholder="ระบุลิงก์รูปภาพ (https://...)" value={formData.imageUrl || ''} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-                    <p className="text-xs text-slate-500 mt-1">แนะนำให้ใช้รูปภาพสัดส่วน 1:1 หรือ Squareimage</p>
-                  </div>
-                  {formData.imageUrl && (
-                    <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
-                      <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Error'; }} />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4 gap-3 border-t border-slate-100 mt-6">
-              <button type="button" onClick={handleBackToList} className="bg-slate-100 text-slate-700 px-6 py-2.5 rounded-lg font-semibold hover:bg-slate-200 transition-colors">ยกเลิก</button>
-              <button type="submit" className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-colors shadow-md">{editingConsultant ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}</button>
-            </div>
-          </form>
-        </div>
+  const formView = isFormOpen ? (
+    <div className="max-w-2xl mx-auto animate-fade-in shadow-xl">
+      <div className="flex items-center mb-6">
+        <button onClick={handleBackToList} className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500">
+          <ArrowLeftIcon className="w-6 h-6" />
+        </button>
+        <h2 className="text-2xl font-medium font-title text-slate-900">{editingConsultant ? 'แก้ไขข้อมูลที่ปรึกษา' : 'เพิ่มที่ปรึกษาใหม่'}</h2>
       </div>
-    );
-  }
+
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">คำนำหน้า</label>
+              <input type="text" placeholder="เช่น ดร., ผศ.ดร." value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อ</label>
+              <input type="text" placeholder="ชื่อจริง" value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">นามสกุล</label>
+              <input type="text" placeholder="นามสกุล" value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">ความเชี่ยวชาญ</label>
+              <textarea placeholder="ระบุความเชี่ยวชาญ" value={formData.expertise} onChange={e => setFormData({ ...formData, expertise: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors h-24 font-body" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">เบอร์โทรศัพท์</label>
+              <input type="text" placeholder="เบอร์โทรศัพท์ติดต่อ" value={formData.phone || ''} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">หน่วยงาน/สังกัด</label>
+              <input type="text" placeholder="ระบุหน่วยงาน" value={formData.workplace || ''} onChange={e => setFormData({ ...formData, workplace: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">อีเมล</label>
+              <input type="email" placeholder="ระบุอีเมล" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">ลิงก์รูปภาพ (Image URL)</label>
+              <div className="flex gap-4 items-start">
+                <div className="flex-grow">
+                  <input type="text" placeholder="ระบุลิงก์รูปภาพ (https://...)" value={formData.imageUrl || ''} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+                  <p className="text-xs text-slate-500 mt-1">แนะนำให้ใช้รูปภาพสัดส่วน 1:1 หรือ Square image</p>
+                </div>
+                {formData.imageUrl && (
+                  <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+                    <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Error'; }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-4 gap-3 border-t border-slate-100 mt-6">
+            <button type="button" onClick={handleBackToList} className="bg-slate-100 text-slate-700 px-6 py-2.5 rounded-lg font-semibold hover:bg-slate-200 transition-colors">ยกเลิก</button>
+            <button type="submit" className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-colors shadow-md">{editingConsultant ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  ) : null;
 
   // View Details
-  if (viewingConsultant) {
-    return (
-      <div className="max-w-3xl mx-auto animate-fade-in">
-        <div className="flex items-center gap-4 mb-6">
-          <button onClick={handleBackToList} className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"><ArrowLeftIcon className="w-6 h-6" /></button>
-          <div className="flex items-center gap-3">
-            <AcademicCapIcon className="w-8 h-8 text-blue-600" />
-            <h2 className="text-3xl font-medium font-title text-slate-900">ข้อมูลที่ปรึกษา</h2>
-          </div>
+  const detailsView = viewingConsultant ? (
+    <div className="max-w-3xl mx-auto animate-fade-in shadow-lg">
+      <div className="flex items-center gap-4 mb-6">
+        <button onClick={handleBackToList} className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"><ArrowLeftIcon className="w-6 h-6" /></button>
+        <div className="flex items-center gap-3">
+          <AcademicCapIcon className="w-8 h-8 text-blue-600" />
+          <h2 className="text-3xl font-medium font-title text-slate-900">ข้อมูลที่ปรึกษา</h2>
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+          <AcademicCapIcon className="w-64 h-64 text-slate-900" />
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-            <AcademicCapIcon className="w-64 h-64 text-slate-900" />
+        <div className="flex flex-col md:flex-row gap-8 relative z-10">
+          {/* Image Column */}
+          <div className="flex-shrink-0">
+            <div className="w-32 h-32 md:w-48 md:h-48 rounded-xl overflow-hidden shadow-md border-4 border-white bg-slate-100 flex items-center justify-center">
+              {viewingConsultant.imageUrl ? (
+                <img src={viewingConsultant.imageUrl} alt={`${viewingConsultant.title}${viewingConsultant.firstName}`} className="w-full h-full object-cover" />
+              ) : (
+                <UserCircleIcon className="w-20 h-20 text-slate-400" />
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-8 relative z-10">
-            {/* Image Column */}
-            <div className="flex-shrink-0">
-              <div className="w-32 h-32 md:w-48 md:h-48 rounded-xl overflow-hidden shadow-md border-4 border-white bg-slate-100 flex items-center justify-center">
-                {viewingConsultant.imageUrl ? (
-                  <img src={viewingConsultant.imageUrl} alt={`${viewingConsultant.title}${viewingConsultant.firstName}`} className="w-full h-full object-cover" />
-                ) : (
-                  <UserCircleIcon className="w-20 h-20 text-slate-400" />
+          {/* Info Column */}
+          <div className="flex-grow space-y-6">
+            <div>
+              <h3 className="text-2xl font-bold text-slate-900 font-title mb-2">
+                {viewingConsultant.title} {viewingConsultant.firstName} {viewingConsultant.lastName}
+              </h3>
+              <div className="flex flex-wrap gap-2 text-sm text-slate-500">
+                {viewingConsultant.workplace && (
+                  <span className="flex items-center gap-1 bg-slate-100 px-3 py-1 rounded-full">
+                    <BriefcaseIcon className="w-4 h-4" />
+                    {viewingConsultant.workplace}
+                  </span>
                 )}
               </div>
             </div>
 
-            {/* Info Column */}
-            <div className="flex-grow space-y-6">
-              <div>
-                <h3 className="text-2xl font-bold text-slate-900 font-title mb-2">
-                  {viewingConsultant.title} {viewingConsultant.firstName} {viewingConsultant.lastName}
-                </h3>
-                <div className="flex flex-wrap gap-2 text-sm text-slate-500">
-                  {viewingConsultant.workplace && (
-                    <span className="flex items-center gap-1 bg-slate-100 px-3 py-1 rounded-full">
-                      <BriefcaseIcon className="w-4 h-4" />
-                      {viewingConsultant.workplace}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-2">
-                    <PhoneIcon className="w-4 h-4 text-blue-500" /> ข้อมูลติดต่อ
-                  </h4>
-                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 space-y-2">
-                    <p className="text-slate-700 flex items-center gap-3">
-                      <span className="w-24 text-slate-500 text-sm">เบอร์โทรศัพท์:</span>
-                      <span className="font-medium">{viewingConsultant.phone || '-'}</span>
-                    </p>
-                    <p className="text-slate-700 flex items-center gap-3">
-                      <span className="w-24 text-slate-500 text-sm">อีเมล:</span>
-                      <span className="font-medium">{viewingConsultant.email || '-'}</span>
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  {/* Placeholder for other details if strictly needed, or leave empty/merged */}
-                </div>
-              </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-2">
-                  <AcademicCapIcon className="w-4 h-4 text-orange-500" /> ความเชี่ยวชาญ
+                  <PhoneIcon className="w-4 h-4 text-blue-500" /> ข้อมูลติดต่อ
                 </h4>
-                <div className="bg-orange-50 p-5 rounded-lg border border-orange-100 text-slate-700 leading-relaxed whitespace-pre-wrap">
-                  {viewingConsultant.expertise}
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 space-y-2">
+                  <p className="text-slate-700 flex items-center gap-3">
+                    <span className="w-24 text-slate-500 text-sm">เบอร์โทรศัพท์:</span>
+                    <span className="font-medium">{viewingConsultant.phone || '-'}</span>
+                  </p>
+                  <p className="text-slate-700 flex items-center gap-3">
+                    <span className="w-24 text-slate-500 text-sm">อีเมล:</span>
+                    <span className="font-medium">{viewingConsultant.email || '-'}</span>
+                  </p>
                 </div>
+              </div>
+
+              <div>
+                {/* Placeholder for other details if strictly needed, or leave empty/merged */}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-2">
+                <AcademicCapIcon className="w-4 h-4 text-orange-500" /> ความเชี่ยวชาญ
+              </h4>
+              <div className="bg-orange-50 p-5 rounded-lg border border-orange-100 text-slate-700 leading-relaxed whitespace-pre-wrap">
+                {viewingConsultant.expertise}
               </div>
             </div>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  ) : null;
 
-  // List View
-  return (
+  // View: List
+  const listView = (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
         <div className="w-full md:w-auto md:flex-1 relative">
@@ -435,6 +436,26 @@ const ConsultantView: React.FC = () => { // Removed props
           </button>
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <div className="container mx-auto">
+      {isFormOpen && formView}
+      {viewingConsultant && detailsView}
+      {!isFormOpen && !viewingConsultant && listView}
+
+      <Modal isOpen={isDeleteModalOpen} onClose={handleCloseDeleteModal} title="ยืนยันการลบ" icon={<ExclamationTriangleIcon className="w-7 h-7 text-red-500" />}>
+        {deletingConsultant && (
+          <div>
+            <p className="text-slate-600 mb-6 text-base font-body">คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ <span className="font-semibold text-slate-900">{deletingConsultant.title}{deletingConsultant.firstName} {deletingConsultant.lastName}</span>? <br />การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+            <div className="flex justify-end gap-4">
+              <button onClick={handleCloseDeleteModal} className="px-5 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 font-semibold transition-colors">ยกเลิก</button>
+              <button onClick={handleConfirmDelete} className="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors">ยืนยัน</button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
