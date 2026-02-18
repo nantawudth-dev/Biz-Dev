@@ -4,12 +4,14 @@ import { Consultant, Entrepreneur, Course } from '../types';
 import { SparklesIcon, BuildingOffice2Icon, UserCircleIcon, ArrowPathIcon, AcademicCapIcon, PhoneIcon, EnvelopeIcon } from './icons';
 import { useNotification } from '../contexts/NotificationContext';
 import { dataService } from '../services/dataService';
+import { useData } from '../contexts/DataContext';
 
 const AIAnalysisView: React.FC = () => { // Removed props
     const [entrepreneurs, setEntrepreneurs] = useState<Entrepreneur[]>([]);
     const [consultants, setConsultants] = useState<Consultant[]>([]);
     const [courses, setCourses] = useState<Course[]>([]);
     const [isLoadingData, setIsLoadingData] = useState(true);
+    const { data, fetchData } = useData();
     const { showNotification } = useNotification();
 
     const [selectedEntrepreneurId, setSelectedEntrepreneurId] = useState<string>('');
@@ -19,19 +21,16 @@ const AIAnalysisView: React.FC = () => { // Removed props
     const [recommendedConsultants, setRecommendedConsultants] = useState<Consultant[]>([]);
     const [recommendedCourses, setRecommendedCourses] = useState<Course[]>([]);
 
-    // Fetch data on mount
+    // Fetch data using DataContext on mount
     useEffect(() => {
-        const fetchData = async () => {
+        const loadAIAnalysisData = async () => {
             try {
                 setIsLoadingData(true);
-                const [fetchedEntrepreneurs, fetchedConsultants, fetchedCourses] = await Promise.all([
-                    dataService.getEntrepreneurs(),
-                    dataService.getConsultants(),
-                    dataService.getCourses()
+                await Promise.all([
+                    fetchData('entrepreneurs', () => dataService.getEntrepreneurs()),
+                    fetchData('consultants', () => dataService.getConsultants()),
+                    fetchData('courses', () => dataService.getCourses())
                 ]);
-                setEntrepreneurs(fetchedEntrepreneurs);
-                setConsultants(fetchedConsultants);
-                setCourses(fetchedCourses);
             } catch (error) {
                 console.error('Failed to fetch data for AI Analysis:', error);
                 showNotification('ไม่สามารถโหลดข้อมูลสำหรับวิเคราะห์ได้', 'error');
@@ -39,8 +38,15 @@ const AIAnalysisView: React.FC = () => { // Removed props
                 setIsLoadingData(false);
             }
         };
-        fetchData();
-    }, [showNotification]);
+        loadAIAnalysisData();
+    }, [fetchData, showNotification]);
+
+    // Sync from DataContext when the cached data changes
+    useEffect(() => {
+        if (data.entrepreneurs) setEntrepreneurs(data.entrepreneurs);
+        if (data.consultants) setConsultants(data.consultants);
+        if (data.courses) setCourses(data.courses);
+    }, [data.entrepreneurs, data.consultants, data.courses]);
 
     const handleAnalyze = () => {
         if (!problemDescription.trim() || !selectedEntrepreneurId) return;

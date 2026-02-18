@@ -5,6 +5,7 @@ import Modal from './Modal';
 import { useNotification } from '../contexts/NotificationContext';
 import { PlusIcon, PencilIcon, TrashIcon, UserCircleIcon, BuildingIcon, BriefcaseIcon, CalendarIcon } from './icons';
 import { dataService } from '../services/dataService';
+import { useData } from '../contexts/DataContext';
 
 // Interface for items with active status
 interface ManageableItem {
@@ -175,6 +176,7 @@ const SettingsView: React.FC = () => { // Removed props
   const [establishmentTypes, setEstablishmentTypes] = useState<string[]>([]);
   const [businessCategories, setBusinessCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { data, fetchData } = useData();
   const { showNotification } = useNotification();
 
   const [activeTab, setActiveTab] = useState('users');
@@ -186,16 +188,15 @@ const SettingsView: React.FC = () => { // Removed props
     // Removed 'fiscal' year tab as it's now handled by constants and no dynamic CRUD provided yet
   ];
 
+  // Fetch data using DataContext on mount
   useEffect(() => {
-    const fetchData = async () => {
+    const loadSettingsData = async () => {
       try {
         setIsLoading(true);
-        const [fetchedEstTypes, fetchedBizCats] = await Promise.all([
-          dataService.getEstablishmentTypes(),
-          dataService.getBusinessCategories()
+        await Promise.all([
+          fetchData('establishmentTypes', () => dataService.getEstablishmentTypes()),
+          fetchData('businessCategories', () => dataService.getBusinessCategories())
         ]);
-        setEstablishmentTypes(fetchedEstTypes);
-        setBusinessCategories(fetchedBizCats);
       } catch (error) {
         console.error('Failed to fetch settings data:', error);
         showNotification('ไม่สามารถโหลดข้อมูลการตั้งค่าได้', 'error');
@@ -203,8 +204,14 @@ const SettingsView: React.FC = () => { // Removed props
         setIsLoading(false);
       }
     };
-    fetchData();
-  }, [showNotification]);
+    loadSettingsData();
+  }, [fetchData, showNotification]);
+
+  // Sync from DataContext when the cached data changes
+  useEffect(() => {
+    if (data.establishmentTypes) setEstablishmentTypes(data.establishmentTypes);
+    if (data.businessCategories) setBusinessCategories(data.businessCategories);
+  }, [data.establishmentTypes, data.businessCategories]);
 
   if (isLoading) {
     return (
