@@ -55,10 +55,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 console.log(`%c[FETCH DONE] ${key}`, 'color: green;');
                 return result;
             })
-            .catch((error) => {
+            .catch((error: any) => {
                 // Remove from in-flight on error
                 inFlightRequests.current.delete(key);
-                console.error(`%c[FETCH ERROR] ${key}`, 'color: red;', error);
+
+                // Check for "message channel closed" specifically
+                if (error?.message?.includes('message channel closed') || error?.message?.includes('The message port closed before a response was received')) {
+                    console.warn(`[SUPPRESSED] Background message channel closed. This is likely caused by a browser extension. Key: ${key} (คำเตือน: ข้อผิดพลาดนี้มักเกิดจากส่วนขยายของเบราว์เซอร์ และไม่ส่งผลกระทบต่อการทำงานของแอปพลิเคชัน)`);
+                } else {
+                    console.error(`%c[FETCH ERROR] ${key}`, 'color: red;', error);
+                }
+
                 throw error;
             });
 
