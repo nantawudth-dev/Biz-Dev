@@ -32,6 +32,48 @@ const MainApp = () => {
   const [isLoginSuccessOpen, setIsLoginSuccessOpen] = useState(false);
   const [loginProgress, setLoginProgress] = useState(0);
 
+  // Idle Timeout State
+  const [isIdleWarningOpen, setIsIdleWarningOpen] = useState(false);
+  const [idleCountdown, setIdleCountdown] = useState(120); // 2 minutes countdown
+  const [lastActivityTime, setLastActivityTime] = useState(Date.now());
+
+  const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+  const WARNING_THRESHOLD_MS = 28 * 60 * 1000; // Show warning after 28 minutes
+
+  // Idle Timeout Logic
+  useEffect(() => {
+    if (!user) return;
+
+    const resetTimer = () => {
+      setLastActivityTime(Date.now());
+      if (isIdleWarningOpen) {
+        setIsIdleWarningOpen(false);
+      }
+    };
+
+    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+
+    const checkInterval = setInterval(() => {
+      const now = Date.now();
+      const elapsed = now - lastActivityTime;
+
+      if (elapsed >= IDLE_TIMEOUT_MS) {
+        performLogout();
+        setIsIdleWarningOpen(false);
+      } else if (elapsed >= WARNING_THRESHOLD_MS) {
+        const remaining = Math.max(0, Math.ceil((IDLE_TIMEOUT_MS - elapsed) / 1000));
+        setIdleCountdown(remaining);
+        setIsIdleWarningOpen(true);
+      }
+    }, 1000);
+
+    return () => {
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+      clearInterval(checkInterval);
+    };
+  }, [user, lastActivityTime, isIdleWarningOpen]);
+
   // Role determination based on AuthContext
   const userRole: Role = isAdmin ? 'admin' : (isOfficer ? 'officer' : 'user');
   const currentUser = { id: user?.id || '', username: user?.email || 'User', role: userRole };
@@ -214,6 +256,34 @@ const MainApp = () => {
             ></div>
           </div>
           <p className="text-xs text-slate-400">กำลังเข้าสู่หน้าหลัก...</p>
+        </div>
+      </Modal>
+      <Modal
+        isOpen={isIdleWarningOpen}
+        onClose={() => setLastActivityTime(Date.now())}
+        title=""
+        maxWidth="max-w-sm"
+      >
+        <div className="flex flex-col items-center justify-center p-4 text-center -mt-6">
+          <div className="bg-blue-50 p-4 rounded-full mb-4 animate-pulse shadow-sm">
+            <ExclamationTriangleIcon className="w-12 h-12 text-blue-500" />
+          </div>
+
+          <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2 font-title">
+            ไม่มีการใช้งานมาระยะหนึ่ง
+          </h2>
+          <p className="text-slate-500 mb-6 font-body">คุณจะถูกออกจากระบบโดยอัตโนมัติในอีก</p>
+
+          <div className="text-4xl font-bold text-slate-800 mb-8 font-title tabular-nums">
+            {Math.floor(idleCountdown / 60)}:{(idleCountdown % 60).toString().padStart(2, '0')}
+          </div>
+
+          <button
+            onClick={() => setLastActivityTime(Date.now())}
+            className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg font-semibold transition-all duration-300 transform hover:-translate-y-0.5"
+          >
+            ใช้งานต่อ
+          </button>
         </div>
       </Modal>
     </div>
