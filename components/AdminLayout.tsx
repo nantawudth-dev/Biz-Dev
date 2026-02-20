@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Entrepreneur, Project, Course, Consultant, ViewType, User, UserAccount, Role } from '../types';
+import { Entrepreneur, Project, Course, Consultant, ViewType, User, UserAccount, Role, ProjectCategorySetting } from '../types';
 import Sidebar from './Sidebar';
 import DashboardView from './DashboardView';
 import EntrepreneurView from './EntrepreneurView';
@@ -12,7 +12,6 @@ import AIAnalysisView from './AIAnalysisView';
 import SettingsView from './SettingsView';
 import Modal from './Modal';
 import { Bars3Icon, ExclamationTriangleIcon } from './icons';
-import { ProjectCategorySetting } from '../App';
 
 interface AdminLayoutProps {
     currentUser: User;
@@ -111,7 +110,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
                 viewComponent = <ProjectView userRole={userRole} projects={projects} setProjects={setProjects} entrepreneurs={entrepreneurs} projectCategories={projectCategories} fiscalYears={fiscalYears} />;
                 break;
             case ViewType.BizProjects:
-                viewComponent = <BizProjectView projects={projects} entrepreneurs={entrepreneurs} projectCategories={projectCategories} fiscalYears={fiscalYears} />;
+                viewComponent = <BizProjectView />;
                 break;
             case ViewType.Courses:
                 viewComponent = <CourseView userRole={userRole} courses={courses} setCourses={setCourses} />;
@@ -176,7 +175,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
                             {activeView === ViewType.Dashboard && 'ภาพรวม'}
                             {activeView === ViewType.Entrepreneurs && 'ผู้ประกอบการ'}
                             {activeView === ViewType.Projects && 'โครงการทั้งหมด'}
-                            {activeView === ViewType.BizProjects && 'ผลลัพธ์โครงการ'}
+                            {activeView === ViewType.BizProjects && 'ผลสัมฤทธิ์โครงการ'}
                             {activeView === ViewType.Courses && 'หลักสูตรอบรม'}
                             {activeView === ViewType.Consultants && 'ผู้เชี่ยวชาญ'}
                             {activeView === ViewType.AIAnalysis && 'AI Analysis'}
@@ -195,8 +194,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
 
                         {/* User Avatar with Role-based Gradient - Rounded Square */}
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm shadow-md ${currentUser.role === 'admin' ? 'bg-gradient-to-br from-orange-200 to-orange-300 text-orange-800' :
-                                currentUser.role === 'officer' ? 'bg-gradient-to-br from-blue-200 to-blue-300 text-blue-800' :
-                                    'bg-gradient-to-br from-green-200 to-green-300 text-green-800'
+                            currentUser.role === 'officer' ? 'bg-gradient-to-br from-blue-200 to-blue-300 text-blue-800' :
+                                'bg-gradient-to-br from-green-200 to-green-300 text-green-800'
                             }`}>
                             {currentUser.username.charAt(0).toUpperCase()}
                         </div>

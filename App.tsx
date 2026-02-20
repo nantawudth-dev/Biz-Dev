@@ -115,7 +115,7 @@ const MainApp = () => {
       case ViewType.Dashboard: return 'ภาพรวมระบบ';
       case ViewType.Entrepreneurs: return 'ผู้ประกอบการ';
       case ViewType.Projects: return 'โครงการ';
-      case ViewType.BizProjects: return 'โครงการ Biz-Lab';
+      case ViewType.BizProjects: return 'ผลสัมฤทธิ์โครงการ';
       case ViewType.Courses: return 'หลักสูตรอบรม';
       case ViewType.Consultants: return 'ผู้เชี่ยวชาญ';
       case ViewType.UserManagement: return 'จัดการผู้ใช้งาน';
