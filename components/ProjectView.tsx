@@ -122,14 +122,26 @@ const ProjectView: React.FC = () => { // Removed props
     setReportLink(project.completeReportLink || '');
   };
 
-  const handleSaveOutcome = (e: React.FormEvent) => {
+  const handleSaveOutcome = async (e: React.FormEvent) => {
     e.preventDefault();
     if (reportingProject) {
-      setProjects(projects.map(p => p.id === reportingProject.id ? { ...p, outcome: outcomeForm, completeReportLink: reportLink } : p));
-      showNotification('บันทึกผลสัมฤทธิ์เรียบร้อยแล้ว', 'success');
-      setReportingProject(null);
-      setOutcomeForm('');
-      setReportLink('');
+      try {
+        await dataService.updateProject(reportingProject.id, {
+          outcome: outcomeForm,
+          completeReportLink: reportLink,
+          status: 'Completed',
+        });
+        invalidateCache('projects');
+        await fetchData('projects', () => dataService.getProjects());
+        showNotification('บันทึกผลสัมฤทธิ์เรียบร้อยแล้ว', 'success');
+      } catch (error) {
+        console.error('Error saving outcome:', error);
+        showNotification('เกิดข้อผิดพลาดในการบันทึกผลสัมฤทธิ์', 'error');
+      } finally {
+        setReportingProject(null);
+        setOutcomeForm('');
+        setReportLink('');
+      }
     }
   };
 
@@ -453,7 +465,7 @@ const ProjectView: React.FC = () => { // Removed props
           <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-6">
             <label className="text-sm font-semibold text-emerald-700 uppercase tracking-wide flex items-center gap-2">
               <CheckCircleIcon className="w-5 h-5" />
-              ผลลัพธ์โครงการ
+              ผลสัมฤทธิ์โครงการ
             </label>
             <p className="text-base text-slate-800 mt-3 leading-relaxed">{selectedProject.outcome}</p>
           </div>
@@ -793,6 +805,30 @@ const ProjectView: React.FC = () => { // Removed props
         </div>
       )}
 
+      {/* Add Project Banner (admin/officer only) */}
+      {(userRole === 'admin' || userRole === 'officer') && (
+        <div className="mt-8">
+          <button
+            onClick={handleOpenAdd}
+            className="w-full group relative overflow-hidden bg-gradient-to-r from-blue-50 via-cyan-50 to-sky-50 hover:from-blue-100 hover:via-cyan-100 hover:to-sky-100 border-2 border-blue-200/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] p-6 text-left"
+          >
+            <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity">
+              <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1170&auto=format&fit=crop" alt="" className="w-full h-full object-cover" />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-sky-400/20"></div>
+            <div className="relative flex items-center gap-6">
+              <div className="bg-gradient-to-br from-blue-600 to-cyan-500 p-4 rounded-xl group-hover:from-blue-700 group-hover:to-cyan-600 transition-all shadow-md">
+                <BriefcaseIcon className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-left flex-1">
+                <h3 className="text-xl font-bold mb-1 text-slate-800">เพิ่มโครงการ</h3>
+                <p className="text-slate-600 text-sm font-normal">เพิ่มข้อมูลโครงการใหม่เข้าสู่ระบบ</p>
+              </div>
+              <PlusIcon className="w-6 h-6 text-blue-600 opacity-80 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </button>
+        </div>
+      )}
     </div>
   );
 
