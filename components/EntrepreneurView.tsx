@@ -10,7 +10,7 @@ import { useData } from '../contexts/DataContext';
 import Pagination from './Pagination';
 
 const emptyEntrepreneurForm: Omit<Entrepreneur, 'id'> & { id?: string } = {
-  name: '', businessName: '', contact: '', establishmentType: '', businessCategory: '', address: '', lineId: '', facebook: '', nickname: ''
+  name: '', businessName: '', contact: '', establishmentType: '', businessCategory: '', address: '', lineId: '', facebook: '', nickname: '', position: ''
 };
 
 const CardView = ({ data, userRole, onView, onEdit, onDelete }: { data: Entrepreneur[], userRole: Role, onView: (ent: Entrepreneur) => void, onEdit: (ent: Entrepreneur) => void, onDelete: (ent: Entrepreneur) => void }) => (
@@ -28,7 +28,10 @@ const CardView = ({ data, userRole, onView, onEdit, onDelete }: { data: Entrepre
           <div className="border-t border-slate-200 mt-auto pt-4 text-slate-600 space-y-3 font-body">
             <div className="flex items-center gap-3">
               <UserGroupIcon className="w-5 h-5 text-slate-400 shrink-0" />
-              <span className="font-semibold text-slate-700">{ent.name} {ent.nickname && <span className="text-slate-500 font-normal text-sm">({ent.nickname})</span>}</span>
+              <div>
+                <span className="font-semibold text-slate-700">{ent.name} {ent.nickname && <span className="text-slate-500 font-normal text-sm">({ent.nickname})</span>}</span>
+                {ent.position && <p className="text-xs text-slate-500 mt-0.5">{ent.position}</p>}
+              </div>
             </div>
             <p className="flex items-center gap-3"><PhoneIcon className="w-5 h-5 text-slate-400 shrink-0" /><span>{ent.contact || '-'}</span></p>
           </div>
@@ -337,6 +340,11 @@ const EntrepreneurView: React.FC = () => { // Removed props
             </div>
 
             <div className="md:col-span-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">ตำแหน่ง (ไม่บังคับ)</label>
+              <input type="text" placeholder="เช่น เจ้าของกิจการ, ผู้จัดการ" value={formData.position || ''} onChange={e => setFormData({ ...formData, position: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+
+            <div className="md:col-span-1">
               <label className="block text-sm font-medium text-slate-700 mb-1">เบอร์โทร</label>
               <input type="text" placeholder="เบอร์โทร" value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
             </div>
@@ -398,6 +406,7 @@ const EntrepreneurView: React.FC = () => { // Removed props
               {viewingEntrepreneur.name}
               {viewingEntrepreneur.nickname && <span className="text-slate-500 text-base font-normal"> ({viewingEntrepreneur.nickname})</span>}
             </p>
+            {viewingEntrepreneur.position && <p className="text-sm text-slate-500 mt-0.5">{viewingEntrepreneur.position}</p>}
           </div>
           <div>
             <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">เบอร์โทร</label>

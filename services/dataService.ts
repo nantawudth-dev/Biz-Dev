@@ -26,6 +26,7 @@ export const dataService = {
             lineId: item.line_id || '',
             facebook: item.facebook || '',
             nickname: item.nickname || '',
+            position: item.position || '',
         }));
     },
 
@@ -41,7 +42,8 @@ export const dataService = {
                 phone: entrepreneur.phone || entrepreneur.contact,
                 line_id: entrepreneur.lineId,
                 facebook: entrepreneur.facebook,
-                nickname: entrepreneur.nickname
+                nickname: entrepreneur.nickname,
+                position: entrepreneur.position
                 // created_by is handled by RLS/Trigger or default
             }])
             .select()
@@ -63,7 +65,8 @@ export const dataService = {
             phone: data.phone || '',
             lineId: data.line_id || '',
             facebook: data.facebook || '',
-            nickname: data.nickname || ''
+            nickname: data.nickname || '',
+            position: data.position || ''
         };
     },
 
@@ -78,6 +81,7 @@ export const dataService = {
         if (entrepreneur.lineId !== undefined) updates.line_id = entrepreneur.lineId;
         if (entrepreneur.facebook !== undefined) updates.facebook = entrepreneur.facebook;
         if (entrepreneur.nickname !== undefined) updates.nickname = entrepreneur.nickname;
+        if (entrepreneur.position !== undefined) updates.position = entrepreneur.position;
 
         const { error } = await supabase
             .from('entrepreneurs')
@@ -467,6 +471,15 @@ export const dataService = {
         if (error) throw error;
     },
 
+    async updateEstablishmentType(oldName: string, newName: string): Promise<void> {
+        const { error } = await supabase
+            .from('establishment_types')
+            .update({ name: newName })
+            .eq('name', oldName)
+            .eq('is_active', true);
+        if (error) throw error;
+    },
+
     async deleteEstablishmentType(name: string): Promise<void> {
         // Soft delete
         const { error } = await supabase
@@ -491,6 +504,15 @@ export const dataService = {
         const { error } = await supabase
             .from('business_categories')
             .insert([{ name, is_active: true }]);
+        if (error) throw error;
+    },
+
+    async updateBusinessCategory(oldName: string, newName: string): Promise<void> {
+        const { error } = await supabase
+            .from('business_categories')
+            .update({ name: newName })
+            .eq('name', oldName)
+            .eq('is_active', true);
         if (error) throw error;
     },
 

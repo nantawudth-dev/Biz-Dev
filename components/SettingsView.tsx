@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import UserManagementView from './UserManagementView';
 import Modal from './Modal';
 import { useNotification } from '../contexts/NotificationContext';
-import { PlusIcon, PencilIcon, TrashIcon, UserCircleIcon, BuildingIcon, BriefcaseIcon, CalendarIcon } from './icons';
+import { PlusIcon, PencilIcon, TrashIcon, ExclamationTriangleIcon, UserCircleIcon, BuildingIcon, BriefcaseIcon } from './icons';
 import { dataService } from '../services/dataService';
 import { useData } from '../contexts/DataContext';
 
@@ -13,110 +13,105 @@ interface ManageableItem {
   isActive: boolean;
 }
 
-// Reusable component for managing a list of items with active/inactive toggles
+
+// Reusable component for managing a list of items with add/edit/delete
 const ManageableStringList: React.FC<{
   title: string;
   items: string[];
   setItems: React.Dispatch<React.SetStateAction<string[]>>;
   noun: string;
   onAdd?: (value: string) => Promise<void>;
+  onUpdate?: (oldValue: string, newValue: string) => Promise<void>;
   onDelete?: (value: string) => Promise<void>;
-}> = ({ title, items, setItems, noun, onAdd, onDelete }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  onRefresh?: () => Promise<void>;
+}> = ({ title, items, setItems, noun, onAdd, onUpdate, onDelete, onRefresh }) => {
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [deletingItem, setDeletingItem] = useState<string | null>(null);
   const [currentItemValue, setCurrentItemValue] = useState('');
-  const [itemsWithStatus, setItemsWithStatus] = useState<ManageableItem[]>(
-    items.map(item => ({ value: item, isActive: true }))
-  );
+  const [isSaving, setIsSaving] = useState(false);
   const { showNotification } = useNotification();
-
-  // Sync items with status when items prop changes
-  useEffect(() => {
-    const existingValues = itemsWithStatus.map(i => i.value);
-    const newItems = items.filter(item => !existingValues.includes(item));
-    if (newItems.length > 0) {
-      setItemsWithStatus(prev => [...prev, ...newItems.map(item => ({ value: item, isActive: true }))]);
-    }
-    // Also remove items that are no longer in the list (e.g. deleted externally, though unlikely here)
-    // But for local delete, we handle it in handleDelete
-  }, [items]);
 
   const handleOpenAdd = () => {
     setEditingItem(null);
     setCurrentItemValue('');
-    setIsModalOpen(true);
+    setIsFormModalOpen(true);
   };
 
-  const handleOpenEdit = (item: ManageableItem) => {
-    setEditingItem(item.value);
-    setCurrentItemValue(item.value);
-    setIsModalOpen(true);
+  const handleOpenEdit = (item: string) => {
+    setEditingItem(item);
+    setCurrentItemValue(item);
+    setIsFormModalOpen(true);
   };
 
-  const handleDelete = async (itemToDelete: ManageableItem) => {
-    if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ ${noun} "${itemToDelete.value}"?`)) {
-      try {
-        if (onDelete) {
-          await onDelete(itemToDelete.value);
-        }
-        setItemsWithStatus(itemsWithStatus.filter(item => item.value !== itemToDelete.value));
-        setItems(items.filter(item => item !== itemToDelete.value));
-        showNotification(`ลบ${noun}สำเร็จ`, 'delete');
-      } catch (error) {
-        console.error(error);
-        showNotification(`เกิดข้อผิดพลาดในการลบ${noun}`, 'error');
+  const handleOpenDelete = (item: string) => {
+    setDeletingItem(item);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingItem) return;
+    try {
+      if (onDelete) await onDelete(deletingItem);
+      if (onRefresh) {
+        await onRefresh();
+      } else {
+        setItems(items.filter(i => i !== deletingItem));
       }
+      showNotification(`ลบ${noun}สำเร็จ`, 'delete');
+    } catch (error) {
+      console.error(error);
+      showNotification(`เกิดข้อผิดพลาดในการลบ${noun}`, 'error');
+    } finally {
+      setIsDeleteModalOpen(false);
+      setDeletingItem(null);
     }
-  };
-
-  const handleToggleActive = (item: ManageableItem) => {
-    // Note: Toggle active usually means soft delete or update status. 
-    // Since our dataService delete uses soft delete (is_active=false), "Delete" button does that.
-    // "Toggle Active" button logic in UI is local only for now unless we add update method.
-    // The previously implemented delete IS soft delete. So "Delete" button calls soft delete.
-    // The "Toggle Active" button here flips local state. 
-    // If user wants to "Deactivate", they can use Delete button? 
-    // Or we should map Toggle Active to delete/restore?
-    // Start with local behavior to match previous code, but warn user or implement properly if asked.
-    // For now, let's leave it local as existing code, but Delete is real.
-    setItemsWithStatus(itemsWithStatus.map(i =>
-      i.value === item.value ? { ...i, isActive: !i.isActive } : i
-    ));
-    showNotification(`${item.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}${noun}สำเร็จ`, 'success');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentItemValue) return;
-
-    if (editingItem) { // Editing existing item
-      // Editing name might be complex (need ID). Skipping sync for edit for now.
-      setItemsWithStatus(itemsWithStatus.map(item =>
-        item.value === editingItem ? { ...item, value: currentItemValue } : item
-      ));
-      setItems(items.map(item => item === editingItem ? currentItemValue : item));
-      showNotification(`อัปเดต${noun}สำเร็จ`, 'success');
-    } else { // Adding new item
-      if (items.includes(currentItemValue)) {
-        showNotification(`${noun}นี้มีอยู่แล้ว`, 'error');
-        return;
-      }
-      try {
-        if (onAdd) {
-          await onAdd(currentItemValue);
+    if (!currentItemValue.trim()) return;
+    setIsSaving(true);
+    try {
+      if (editingItem) {
+        // Edit existing
+        if (editingItem === currentItemValue.trim()) {
+          setIsFormModalOpen(false);
+          return;
         }
-        // State update happens via useEffect on 'items' change if parent updates it, 
-        // OR we update purely local if parent doesn't auto-refresh.
-        // But onAdd is async void. We should update local state manually.
-        setItemsWithStatus([...itemsWithStatus, { value: currentItemValue, isActive: true }]);
-        setItems([...items, currentItemValue]);
+        if (items.some(i => i !== editingItem && i === currentItemValue.trim())) {
+          showNotification(`${noun}นี้มีอยู่แล้ว`, 'error');
+          return;
+        }
+        if (onUpdate) await onUpdate(editingItem, currentItemValue.trim());
+        if (onRefresh) {
+          await onRefresh();
+        } else {
+          setItems(items.map(i => i === editingItem ? currentItemValue.trim() : i));
+        }
+        showNotification(`อัปเดต${noun}สำเร็จ`, 'success');
+      } else {
+        // Add new
+        if (items.includes(currentItemValue.trim())) {
+          showNotification(`${noun}นี้มีอยู่แล้ว`, 'error');
+          return;
+        }
+        if (onAdd) await onAdd(currentItemValue.trim());
+        if (onRefresh) {
+          await onRefresh();
+        } else {
+          setItems([...items, currentItemValue.trim()]);
+        }
         showNotification(`เพิ่ม${noun}ใหม่สำเร็จ`, 'success');
-      } catch (error) {
-        console.error(error);
-        showNotification(`เกิดข้อผิดพลาดในการเพิ่ม${noun}`, 'error');
       }
+      setIsFormModalOpen(false);
+    } catch (error) {
+      console.error(error);
+      showNotification(`เกิดข้อผิดพลาดในการบันทึก${noun}`, 'error');
+    } finally {
+      setIsSaving(false);
     }
-    setIsModalOpen(false);
   };
 
   return (
@@ -129,54 +124,79 @@ const ManageableStringList: React.FC<{
         </button>
       </div>
       <div className="p-4 space-y-2">
-        {itemsWithStatus.map((item, index) => (
-          <div key={index} className={`p-3 rounded-lg flex justify-between items-center transition-all ${item.isActive ? 'bg-slate-50' : 'bg-slate-100 opacity-60'}`}>
-            <div className="flex items-center gap-3 flex-1">
-              <span className={`font-medium ${item.isActive ? 'text-slate-700' : 'text-slate-500'}`}>{item.value}</span>
-              {!item.isActive && <span className="text-xs px-2 py-0.5 bg-slate-300 text-slate-600 rounded-full">ไม่ใช้งาน</span>}
-            </div>
-            <div className="flex items-center gap-2">
+        {items.length === 0 && (
+          <p className="text-center text-slate-400 py-6 text-sm">ยังไม่มีข้อมูล กดปุ่ม "เพิ่ม" เพื่อเริ่มต้น</p>
+        )}
+        {items.map((item, index) => (
+          <div key={index} className="p-3 rounded-lg bg-slate-50 flex justify-between items-center group hover:bg-slate-100 transition-colors">
+            <span className="font-medium text-slate-700">{item}</span>
+            <div className="flex items-center gap-1">
               <button
-                onClick={() => handleToggleActive(item)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${item.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                title={item.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
+                onClick={() => handleOpenEdit(item)}
+                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                title="แก้ไข"
               >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${item.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
+                <PencilIcon className="w-5 h-5" />
               </button>
-              {/* Edit button disabled for synced items for now as complexity of ID lookup is high without full refactor */}
-              {/* <button onClick={() => handleOpenEdit(item)} className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded-md"><PencilIcon className="w-4 h-4" /></button> */}
-              <button onClick={() => handleDelete(item)} className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-md"><TrashIcon className="w-4 h-4" /></button>
+              <button
+                onClick={() => handleOpenDelete(item)}
+                className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                title="ลบ"
+              >
+                <TrashIcon className="w-5 h-5" />
+              </button>
             </div>
           </div>
         ))}
       </div>
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? `แก้ไข${noun}` : `เพิ่ม${noun}ใหม่`}>
+
+      {/* Add/Edit Modal */}
+      <Modal isOpen={isFormModalOpen} onClose={() => setIsFormModalOpen(false)} title={editingItem ? `แก้ไข${noun}` : `เพิ่ม${noun}ใหม่`}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            placeholder={`ชื่อ${noun}`}
-            value={currentItemValue}
-            onChange={(e) => setCurrentItemValue(e.target.value)}
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          <div className="flex justify-end pt-4">
-            <button type="submit" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90">
-              บันทึก
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อ{noun}</label>
+            <input
+              type="text"
+              placeholder={`ชื่อ${noun}`}
+              value={currentItemValue}
+              onChange={(e) => setCurrentItemValue(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+              autoFocus
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setIsFormModalOpen(false)} className="px-5 py-2 bg-slate-100 text-slate-700 rounded-lg font-semibold hover:bg-slate-200 transition-colors">
+              ยกเลิก
+            </button>
+            <button type="submit" disabled={isSaving} className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 disabled:opacity-60 transition-colors">
+              {isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title={`ยืนยันการลบ${noun}`} icon={<ExclamationTriangleIcon className="w-7 h-7 text-red-500" />}>
+        <p className="text-slate-600 mb-6 font-body">
+          คุณแน่ใจหรือไม่ว่าต้องการลบ{noun} <span className="font-semibold text-slate-900">"{deletingItem}"</span>?<br />
+          การกระทำนี้ไม่สามารถย้อนกลับได้
+        </p>
+        <div className="flex justify-end gap-3">
+          <button onClick={() => setIsDeleteModalOpen(false)} className="px-5 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 font-semibold transition-colors">ยกเลิก</button>
+          <button onClick={handleConfirmDelete} className="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors">ยืนยันลบ</button>
+        </div>
       </Modal>
     </div>
   );
 };
 
 
-const SettingsView: React.FC = () => { // Removed props
+const SettingsView: React.FC = () => {
   const [establishmentTypes, setEstablishmentTypes] = useState<string[]>([]);
   const [businessCategories, setBusinessCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { data, fetchData } = useData();
+  const { data, fetchData, invalidateCache } = useData();
   const { showNotification } = useNotification();
 
   const [activeTab, setActiveTab] = useState('users');
@@ -249,16 +269,28 @@ const SettingsView: React.FC = () => { // Removed props
             items={establishmentTypes}
             setItems={setEstablishmentTypes}
             noun="ประเภท"
-            onAdd={dataService.createEstablishmentType}
-            onDelete={dataService.deleteEstablishmentType}
+            onAdd={dataService.createEstablishmentType.bind(dataService)}
+            onUpdate={dataService.updateEstablishmentType.bind(dataService)}
+            onDelete={dataService.deleteEstablishmentType.bind(dataService)}
+            onRefresh={async () => {
+              invalidateCache('establishmentTypes');
+              const updated = await fetchData('establishmentTypes', () => dataService.getEstablishmentTypes());
+              setEstablishmentTypes(updated);
+            }}
           />}
           {activeTab === 'category' && <ManageableStringList
             title="จัดการหมวดธุรกิจ"
             items={businessCategories}
             setItems={setBusinessCategories}
             noun="หมวด"
-            onAdd={dataService.createBusinessCategory}
-            onDelete={dataService.deleteBusinessCategory}
+            onAdd={dataService.createBusinessCategory.bind(dataService)}
+            onUpdate={dataService.updateBusinessCategory.bind(dataService)}
+            onDelete={dataService.deleteBusinessCategory.bind(dataService)}
+            onRefresh={async () => {
+              invalidateCache('businessCategories');
+              const updated = await fetchData('businessCategories', () => dataService.getBusinessCategories());
+              setBusinessCategories(updated);
+            }}
           />}
         </div>
       </div>

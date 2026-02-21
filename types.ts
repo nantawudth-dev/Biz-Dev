@@ -24,6 +24,7 @@ export interface Entrepreneur {
   lineId: string;       // Line ID
   facebook: string;     // Facebook
   nickname?: string;    // ชื่อเล่น (Optional)
+  position?: string;   // ตำแหน่ง (Optional)
 }
 
 export type ProjectCategory = 'Consulting' | 'Research' | 'Academic Services' | 'Biz-Lab';
