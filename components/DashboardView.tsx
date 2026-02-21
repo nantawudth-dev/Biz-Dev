@@ -33,6 +33,7 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
     const [projects, setProjects] = useState<Project[]>([]);
     const [courses, setCourses] = useState<Course[]>([]);
     const [consultants, setConsultants] = useState<Consultant[]>([]);
+    const [fiscalYears, setFiscalYears] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { data, fetchData } = useData();
     const { showNotification } = useNotification();
@@ -62,7 +63,8 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
                     fetchData('entrepreneurs', () => dataService.getEntrepreneurs()),
                     fetchData('projects', () => dataService.getProjects()),
                     fetchData('courses', () => dataService.getCourses()),
-                    fetchData('consultants', () => dataService.getConsultants())
+                    fetchData('consultants', () => dataService.getConsultants()),
+                    fetchData('fiscalYears', () => dataService.getFiscalYears())
                 ]);
             } catch (error) {
                 console.error('Failed to fetch dashboard data:', error);
@@ -80,7 +82,8 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
         if (data.projects) setProjects(data.projects);
         if (data.courses) setCourses(data.courses);
         if (data.consultants) setConsultants(data.consultants);
-    }, [data.entrepreneurs, data.projects, data.courses, data.consultants]);
+        if (data.fiscalYears) setFiscalYears(data.fiscalYears);
+    }, [data.entrepreneurs, data.projects, data.courses, data.consultants, data.fiscalYears]);
 
     // Force card view on mobile
     useEffect(() => {
@@ -98,7 +101,6 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
     }, []);
 
     // Derived data for filters
-    const fiscalYears = Array.from(new Set(projects.map(p => p.fiscalYear))).filter(Boolean).sort().reverse();
     const projectCategories = ['Research', 'Consulting', 'Academic Services', 'Biz-Lab'];
 
     // Filter projects based on status AND search/filters

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Project, ProjectCategory } from '../types';
 import { SparklesIcon, Squares2X2Icon, ListBulletIcon, FunnelIcon, MagnifyingGlassIcon, CalendarIcon, DocumentTextIcon, ChevronDownIcon, EyeIcon, BriefcaseIcon, ArrowLeftIcon, TagIcon, CheckCircleIcon, UserCircleIcon, BookOpenIcon, ClipboardDocumentCheckIcon, AcademicCapIcon } from './icons';
-import { PROJECT_CATEGORIES, FISCAL_YEARS } from '../constants';
+import { PROJECT_CATEGORIES } from '../constants';
 import Pagination from './Pagination';
 import { useNotification } from '../contexts/NotificationContext';
 import { dataService } from '../services/dataService';
@@ -13,6 +13,7 @@ const BizProjectView: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const { data, fetchData } = useData();
     const { showNotification } = useNotification();
+    const [fiscalYears, setFiscalYears] = useState<string[]>([]);
 
     const [displayMode, setDisplayMode] = useState<'card' | 'list'>('list');
     const [selectedCategory, setSelectedCategory] = useState<ProjectCategory | 'All'>('All');
@@ -26,7 +27,10 @@ const BizProjectView: React.FC = () => {
         const loadProjectData = async () => {
             try {
                 if (!data.projects) setIsLoading(true);
-                await fetchData('projects', () => dataService.getProjects());
+                await Promise.all([
+                    fetchData('projects', () => dataService.getProjects()),
+                    fetchData('fiscalYears', () => dataService.getFiscalYears())
+                ]);
             } catch (error) {
                 console.error('Failed to fetch project data:', error);
                 showNotification('ไม่สามารถโหลดข้อมูลโครงการได้', 'error');
@@ -43,7 +47,8 @@ const BizProjectView: React.FC = () => {
             const withOutcome = data.projects.filter((p: Project) => p.outcome && p.outcome.trim() !== '');
             setAllProjects(withOutcome);
         }
-    }, [data.projects]);
+        if (data.fiscalYears) setFiscalYears(data.fiscalYears);
+    }, [data.projects, data.fiscalYears]);
 
     // Force card view on mobile
     useEffect(() => {
@@ -194,7 +199,7 @@ const BizProjectView: React.FC = () => {
                     <div className="relative">
                         <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="pl-10 pr-8 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none font-semibold text-sm cursor-pointer">
                             <option value="All">ทุกปีงบประมาณ</option>
-                            {FISCAL_YEARS.map(year => <option key={year} value={year}>{year}</option>)}
+                            {fiscalYears.map(year => <option key={year} value={year}>{year}</option>)}
                         </select>
                         <CalendarIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                         <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />

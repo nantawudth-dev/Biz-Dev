@@ -8,9 +8,3 @@ export const PROJECT_CATEGORIES: ProjectCategorySetting[] = [
     { key: 'Biz-Lab', label: 'งานโครงการ Biz-Lab' }
 ];
 
-export const FISCAL_YEARS: string[] = [
-    '2568',
-    '2567',
-    '2566',
-    '2565'
-];

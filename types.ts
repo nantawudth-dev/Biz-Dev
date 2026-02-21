@@ -73,6 +73,21 @@ export interface Consultant {
   imageUrl?: string;
 }
 
+export type LogAction = 'create' | 'update' | 'delete';
+export type LogEntityType = 'entrepreneur' | 'project' | 'course' | 'consultant' | 'user' | 'establishment_type' | 'business_category' | 'fiscal_year';
+
+export interface ActivityLog {
+  id: string;
+  userId: string;
+  userEmail: string;
+  action: LogAction;
+  entityType: LogEntityType;
+  entityId?: string;
+  entityName?: string;
+  details?: Record<string, any>;
+  createdAt: string;
+}
+
 export enum ViewType {
   Dashboard = 'dashboard',
   Entrepreneurs = 'entrepreneurs',

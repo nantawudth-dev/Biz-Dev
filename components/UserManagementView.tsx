@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { UserAccount, Role } from '../types';
 import Modal from './Modal';
-import { PlusIcon, PencilIcon, TrashIcon, UserCircleIcon, ExclamationTriangleIcon, ChevronDownIcon } from './icons';
+import { PlusIcon, PencilIcon, TrashIcon, UserCircleIcon, ExclamationTriangleIcon, ChevronDownIcon, MagnifyingGlassIcon } from './icons';
 import { useNotification } from '../contexts/NotificationContext';
 import { dataService } from '../services/dataService';
 import { useData } from '../contexts/DataContext';
+import Pagination from './Pagination';
 
 // Props interface - Empty now as data is fetched internally
 interface UserManagementViewProps { }
@@ -27,6 +28,11 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
   const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserAccount | null>(null);
   const [formData, setFormData] = useState<Omit<UserAccount, 'id'> & { id?: string }>(emptyUserForm);
+
+  // Search & Pagination
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(6);
 
   const { showNotification } = useNotification();
 
@@ -92,9 +98,9 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
         if (editingUser.id) {
           await dataService.updateProfile(editingUser.id, profileUpdates);
           invalidateCache('profiles');
+          await fetchData('profiles', () => dataService.getProfiles());
         }
 
-        setUsers(users.map(u => u.id === editingUser.id ? { ...formData, id: editingUser.id } as UserAccount : u));
         showNotification('อัปเดตข้อมูลผู้ใช้สำเร็จ', 'success');
       } else {
         // Add new user profile
@@ -105,17 +111,9 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
           isActive: formData.isActive
         });
 
-        // Optimistically add to list if successful
         if (newProfile) {
           invalidateCache('profiles');
-          const newUser: UserAccount = {
-            id: newProfile.id,
-            username: newProfile.username,
-            email: newProfile.email,
-            role: newProfile.role,
-            isActive: newProfile.is_active
-          };
-          setUsers([newUser, ...users]);
+          await fetchData('profiles', () => dataService.getProfiles());
           showNotification('เพิ่มผู้ใช้สำเร็จ (ผู้ใช้ต้องทำการลงทะเบียนด้วยอีเมลนี้)', 'success');
         }
       }
@@ -134,9 +132,9 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
         if (deletingUser.id) {
           await dataService.deleteProfile(deletingUser.id);
           invalidateCache('profiles');
+          await fetchData('profiles', () => dataService.getProfiles());
         }
 
-        setUsers(users.filter(u => u.id !== deletingUser.id));
         showNotification('ลบผู้ใช้สำเร็จ', 'delete');
         handleCloseModals();
       } catch (error) {
@@ -155,6 +153,26 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
     }
   };
 
+  // Filtered & paginated users
+  const filteredUsers = users.filter(user => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      user.username.toLowerCase().includes(term) ||
+      (user.email || '').toLowerCase().includes(term)
+    );
+  });
+
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -166,19 +184,31 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-lg animate-fade-in">
-      <div className="p-5 border-b border-slate-200 flex justify-between items-center">
+      <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h3 className="text-xl font-medium font-title text-slate-800">รายชื่อผู้ใช้งาน</h3>
-        <button
-          onClick={() => {
-            setEditingUser(null);
-            setFormData(emptyUserForm);
-            setIsFormModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-all shadow-md font-semibold text-sm"
-        >
-          <PlusIcon className="w-5 h-5" />
-          เพิ่มผู้ใช้งาน
-        </button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-initial">
+            <input
+              type="text"
+              placeholder="ค้นหาชื่อผู้ใช้ หรืออีเมล..."
+              className="w-full sm:w-64 pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <MagnifyingGlassIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          </div>
+          <button
+            onClick={() => {
+              setEditingUser(null);
+              setFormData(emptyUserForm);
+              setIsFormModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-all shadow-md font-semibold text-sm whitespace-nowrap"
+          >
+            <PlusIcon className="w-5 h-5" />
+            เพิ่มผู้ใช้งาน
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -193,7 +223,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-slate-200">
-            {users.map((user) => (
+            {paginatedUsers.map((user) => (
               <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-3">
@@ -216,7 +246,8 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
                     onClick={async () => {
                       try {
                         await dataService.updateProfile(user.id, { is_active: !user.isActive });
-                        setUsers(users.map(u => u.id === user.id ? { ...u, isActive: !u.isActive } : u));
+                        invalidateCache('profiles');
+                        await fetchData('profiles', () => dataService.getProfiles());
                         showNotification(`${user.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}ผู้ใช้สำเร็จ`, 'success');
                       } catch (error) {
                         console.error('Error toggling status:', error);
@@ -242,6 +273,17 @@ const UserManagementView: React.FC<UserManagementViewProps> = () => {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="p-4">
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredUsers.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(e) => setItemsPerPage(Number(e.target.value))}
+        />
       </div>
 
       <Modal isOpen={isFormModalOpen} onClose={handleCloseModals} title={editingUser ? 'แก้ไขข้อมูลผู้ใช้' : 'เพิ่มผู้ใช้ใหม่'}>

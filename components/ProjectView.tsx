@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { dataService } from '../services/dataService';
 import { useData } from '../contexts/DataContext';
 import Pagination from './Pagination';
-import { PROJECT_CATEGORIES, FISCAL_YEARS } from '../constants'; // Import constants
+import { PROJECT_CATEGORIES } from '../constants'; // Import constants
 import Modal from './Modal';
 
 const emptyProject: Omit<Project, 'id'> = {
@@ -54,6 +54,7 @@ const ProjectView: React.FC = () => { // Removed props
 
   const { data, fetchData, invalidateCache } = useData();
   const { showNotification } = useNotification();
+  const [fiscalYears, setFiscalYears] = useState<string[]>([]);
 
   // Fetch data using DataContext on mount
   useEffect(() => {
@@ -64,7 +65,8 @@ const ProjectView: React.FC = () => { // Removed props
         }
         await Promise.all([
           fetchData('projects', () => dataService.getProjects()),
-          fetchData('entrepreneurs', () => dataService.getEntrepreneurs())
+          fetchData('entrepreneurs', () => dataService.getEntrepreneurs()),
+          fetchData('fiscalYears', () => dataService.getFiscalYears())
         ]);
       } catch (error) {
         console.error('Failed to fetch projects:', error);
@@ -80,7 +82,8 @@ const ProjectView: React.FC = () => { // Removed props
   useEffect(() => {
     if (data.projects) setProjects(data.projects);
     if (data.entrepreneurs) setEntrepreneurs(data.entrepreneurs);
-  }, [data.projects, data.entrepreneurs]);
+    if (data.fiscalYears) setFiscalYears(data.fiscalYears);
+  }, [data.projects, data.entrepreneurs, data.fiscalYears]);
 
   // Force card view on mobile
   useEffect(() => {
@@ -304,7 +307,7 @@ const ProjectView: React.FC = () => { // Removed props
             <div className="relative">
               <select value={formData.fiscalYear} onChange={(e) => setFormData({ ...formData, fiscalYear: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none cursor-pointer" required >
                 <option value="">เลือกปีงบประมาณ</option>
-                {FISCAL_YEARS.map(year => (
+                {fiscalYears.map(year => (
                   <option key={year} value={year}>{year}</option>
                 ))}
               </select>
@@ -534,7 +537,7 @@ const ProjectView: React.FC = () => { // Removed props
               className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors appearance-none font-semibold text-sm cursor-pointer"
             >
               <option value="All">ทุกปีงบประมาณ</option>
-              {FISCAL_YEARS.map(year => (
+              {fiscalYears.map(year => (
                 <option key={year} value={year}>{year}</option>
               ))}
             </select>

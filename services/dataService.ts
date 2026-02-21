@@ -1,7 +1,88 @@
 import { supabase } from './supabaseClient';
-import { Entrepreneur, Project, Consultant, Course } from '../types';
+import { Entrepreneur, Project, Consultant, Course, ActivityLog, LogAction, LogEntityType } from '../types';
+
+// Helper: get current user info for logging
+const getCurrentUser = async () => {
+    const { data } = await supabase.auth.getUser();
+    return { id: data.user?.id, email: data.user?.email || 'unknown' };
+};
 
 export const dataService = {
+
+    // Activity Logging
+    async logActivity(action: LogAction, entityType: LogEntityType, entityId?: string, entityName?: string, details?: Record<string, any>): Promise<void> {
+        try {
+            const user = await getCurrentUser();
+            await supabase.from('activity_logs').insert([{
+                user_id: user.id,
+                user_email: user.email,
+                action,
+                entity_type: entityType,
+                entity_id: entityId,
+                entity_name: entityName,
+                details
+            }]);
+        } catch (e) {
+            console.error('[ActivityLog] Failed to log:', e);
+        }
+    },
+
+    async getActivityLogs(filters?: {
+        search?: string;
+        action?: LogAction;
+        entityType?: LogEntityType;
+        dateRange?: 'today' | '7days' | '30days' | 'all';
+        limit?: number;
+        offset?: number;
+    }): Promise<{ logs: ActivityLog[]; total: number }> {
+        let query = supabase
+            .from('activity_logs')
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false });
+
+        if (filters?.action) query = query.eq('action', filters.action);
+        if (filters?.entityType) query = query.eq('entity_type', filters.entityType);
+        if (filters?.search) {
+            query = query.or(`entity_name.ilike.%${filters.search}%,user_email.ilike.%${filters.search}%`);
+        }
+        if (filters?.dateRange && filters.dateRange !== 'all') {
+            const now = new Date();
+            let from: Date;
+            if (filters.dateRange === 'today') {
+                from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            } else if (filters.dateRange === '7days') {
+                from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            } else {
+                from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            }
+            query = query.gte('created_at', from.toISOString());
+        }
+
+        const limit = filters?.limit || 10;
+        const offset = filters?.offset || 0;
+        query = query.range(offset, offset + limit - 1);
+
+        const { data, error, count } = await query;
+
+        if (error) {
+            console.error('Error fetching activity logs:', error);
+            return { logs: [], total: 0 };
+        }
+
+        const logs: ActivityLog[] = (data || []).map((d: any) => ({
+            id: d.id,
+            userId: d.user_id,
+            userEmail: d.user_email,
+            action: d.action,
+            entityType: d.entity_type,
+            entityId: d.entity_id,
+            entityName: d.entity_name,
+            details: d.details,
+            createdAt: d.created_at
+        }));
+
+        return { logs, total: count || 0 };
+    },
     // Entrepreneurs
     async getEntrepreneurs(): Promise<Entrepreneur[]> {
         const { data, error } = await supabase
@@ -54,7 +135,7 @@ export const dataService = {
             throw error;
         }
 
-        return {
+        const result = {
             id: data.id,
             businessName: data.business_name || '',
             establishmentType: data.establishment_type || '',
@@ -68,6 +149,8 @@ export const dataService = {
             nickname: data.nickname || '',
             position: data.position || ''
         };
+        this.logActivity('create', 'entrepreneur', data.id, result.businessName);
+        return result;
     },
 
     async updateEntrepreneur(id: string, entrepreneur: Partial<Entrepreneur>): Promise<void> {
@@ -92,6 +175,7 @@ export const dataService = {
             console.error('Error updating entrepreneur:', error);
             throw error;
         }
+        this.logActivity('update', 'entrepreneur', id, entrepreneur.businessName || entrepreneur.name);
     },
 
     async deleteEntrepreneur(id: string): Promise<void> {
@@ -104,6 +188,7 @@ export const dataService = {
             console.error('Error deleting entrepreneur:', error);
             throw error;
         }
+        this.logActivity('delete', 'entrepreneur', id);
     },
 
     // Projects
@@ -170,7 +255,7 @@ export const dataService = {
             throw error;
         }
 
-        return {
+        const result = {
             id: data.id,
             name: data.name,
             description: data.description,
@@ -185,6 +270,8 @@ export const dataService = {
             outcome: data.outcome,
             completeReportLink: data.complete_report_link
         };
+        this.logActivity('create', 'project', data.id, result.name);
+        return result;
     },
 
     async updateProject(id: string, project: Partial<Project>): Promise<void> {
@@ -212,6 +299,7 @@ export const dataService = {
             console.error('Error updating project:', error);
             throw error;
         }
+        this.logActivity('update', 'project', id, project.name);
     },
 
     async deleteProject(id: string): Promise<void> {
@@ -224,6 +312,7 @@ export const dataService = {
             console.error('Error deleting project:', error);
             throw error;
         }
+        this.logActivity('delete', 'project', id);
     },
 
     // Consultants
@@ -294,17 +383,19 @@ export const dataService = {
         }
 
         // Return with split name parts to match Consultant type
-        return {
+        const result = {
             id: data.id,
             title: consultant.title,
             firstName: consultant.firstName,
             lastName: consultant.lastName,
-            expertise: consultant.expertise || '', // Return the string version we just saved
+            expertise: consultant.expertise || '',
             phone: data.phone,
             workplace: data.workplace,
             email: data.contact_email,
             imageUrl: data.image_url
         };
+        this.logActivity('create', 'consultant', data.id, `${consultant.title} ${consultant.firstName} ${consultant.lastName}`.trim());
+        return result;
     },
 
     async updateConsultant(id: string, consultant: Partial<Consultant>): Promise<void> {
@@ -349,6 +440,7 @@ export const dataService = {
             console.error('Error updating consultant:', error);
             throw error;
         }
+        this.logActivity('update', 'consultant', id, consultant.firstName ? `${consultant.title || ''} ${consultant.firstName} ${consultant.lastName || ''}`.trim() : undefined);
     },
 
     async deleteConsultant(id: string): Promise<void> {
@@ -361,6 +453,7 @@ export const dataService = {
             console.error('Error deleting consultant:', error);
             throw error;
         }
+        this.logActivity('delete', 'consultant', id);
     },
 
     // Courses
@@ -407,7 +500,7 @@ export const dataService = {
             throw error;
         }
 
-        return {
+        const result = {
             id: data.id,
             title: data.title,
             description: data.description,
@@ -417,6 +510,8 @@ export const dataService = {
             contactPhone: data.contact_phone,
             contactEmail: data.contact_email
         };
+        this.logActivity('create', 'course', data.id, result.title);
+        return result;
     },
 
     async updateCourse(id: string, course: Partial<Course>): Promise<void> {
@@ -438,6 +533,7 @@ export const dataService = {
             console.error('Error updating course:', error);
             throw error;
         }
+        this.logActivity('update', 'course', id, course.title);
     },
 
     async deleteCourse(id: string): Promise<void> {
@@ -450,6 +546,7 @@ export const dataService = {
             console.error('Error deleting course:', error);
             throw error;
         }
+        this.logActivity('delete', 'course', id);
     },
 
     // Master Data
@@ -469,6 +566,7 @@ export const dataService = {
             .from('establishment_types')
             .insert([{ name, is_active: true }]);
         if (error) throw error;
+        this.logActivity('create', 'establishment_type', undefined, name);
     },
 
     async updateEstablishmentType(oldName: string, newName: string): Promise<void> {
@@ -478,6 +576,7 @@ export const dataService = {
             .eq('name', oldName)
             .eq('is_active', true);
         if (error) throw error;
+        this.logActivity('update', 'establishment_type', undefined, newName, { oldName, newName });
     },
 
     async deleteEstablishmentType(name: string): Promise<void> {
@@ -487,6 +586,7 @@ export const dataService = {
             .update({ is_active: false })
             .eq('name', name);
         if (error) throw error;
+        this.logActivity('delete', 'establishment_type', undefined, name);
     },
 
     async getBusinessCategories(): Promise<string[]> {
@@ -505,6 +605,7 @@ export const dataService = {
             .from('business_categories')
             .insert([{ name, is_active: true }]);
         if (error) throw error;
+        this.logActivity('create', 'business_category', undefined, name);
     },
 
     async updateBusinessCategory(oldName: string, newName: string): Promise<void> {
@@ -514,6 +615,7 @@ export const dataService = {
             .eq('name', oldName)
             .eq('is_active', true);
         if (error) throw error;
+        this.logActivity('update', 'business_category', undefined, newName, { oldName, newName });
     },
 
     async deleteBusinessCategory(name: string): Promise<void> {
@@ -523,6 +625,47 @@ export const dataService = {
             .update({ is_active: false })
             .eq('name', name);
         if (error) throw error;
+        this.logActivity('delete', 'business_category', undefined, name);
+    },
+
+    // Fiscal Years
+    async getFiscalYears(): Promise<string[]> {
+        const { data, error } = await supabase
+            .from('fiscal_years')
+            .select('name')
+            .eq('is_active', true)
+            .order('name');
+
+        if (error) return [];
+        return (data || []).map((d: any) => d.name);
+    },
+
+    async createFiscalYear(name: string): Promise<void> {
+        const { error } = await supabase
+            .from('fiscal_years')
+            .insert([{ name, is_active: true }]);
+        if (error) throw error;
+        this.logActivity('create', 'fiscal_year', undefined, name);
+    },
+
+    async updateFiscalYear(oldName: string, newName: string): Promise<void> {
+        const { error } = await supabase
+            .from('fiscal_years')
+            .update({ name: newName })
+            .eq('name', oldName)
+            .eq('is_active', true);
+        if (error) throw error;
+        this.logActivity('update', 'fiscal_year', undefined, newName, { oldName, newName });
+    },
+
+    async deleteFiscalYear(name: string): Promise<void> {
+        // Soft delete
+        const { error } = await supabase
+            .from('fiscal_years')
+            .update({ is_active: false })
+            .eq('name', name);
+        if (error) throw error;
+        this.logActivity('delete', 'fiscal_year', undefined, name);
     },
 
     // User Profiles
@@ -546,6 +689,7 @@ export const dataService = {
             .eq('id', id);
 
         if (error) throw error;
+        this.logActivity('update', 'user', id, updates.username || updates.email);
     },
 
     async createProfile(profile: any): Promise<any> {
@@ -569,6 +713,7 @@ export const dataService = {
             throw error;
         }
 
+        this.logActivity('create', 'user', data.id, profile.username || profile.email);
         return data;
     },
 
@@ -579,6 +724,7 @@ export const dataService = {
             .eq('id', id);
 
         if (error) throw error;
+        this.logActivity('delete', 'user', id);
     },
 
 
