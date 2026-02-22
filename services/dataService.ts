@@ -108,6 +108,7 @@ export const dataService = {
             facebook: item.facebook || '',
             nickname: item.nickname || '',
             position: item.position || '',
+            email: item.email || '',
         }));
     },
 
@@ -124,7 +125,8 @@ export const dataService = {
                 line_id: entrepreneur.lineId,
                 facebook: entrepreneur.facebook,
                 nickname: entrepreneur.nickname,
-                position: entrepreneur.position
+                position: entrepreneur.position,
+                email: entrepreneur.email
                 // created_by is handled by RLS/Trigger or default
             }])
             .select()
@@ -147,7 +149,8 @@ export const dataService = {
             lineId: data.line_id || '',
             facebook: data.facebook || '',
             nickname: data.nickname || '',
-            position: data.position || ''
+            position: data.position || '',
+            email: data.email || ''
         };
         this.logActivity('create', 'entrepreneur', data.id, result.businessName);
         return result;
@@ -165,6 +168,7 @@ export const dataService = {
         if (entrepreneur.facebook !== undefined) updates.facebook = entrepreneur.facebook;
         if (entrepreneur.nickname !== undefined) updates.nickname = entrepreneur.nickname;
         if (entrepreneur.position !== undefined) updates.position = entrepreneur.position;
+        if (entrepreneur.email !== undefined) updates.email = entrepreneur.email;
 
         const { error } = await supabase
             .from('entrepreneurs')

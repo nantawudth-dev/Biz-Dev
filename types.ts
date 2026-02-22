@@ -23,6 +23,7 @@ export interface Entrepreneur {
   phone?: string;       // เบอร์โทร (New field)
   lineId: string;       // Line ID
   facebook: string;     // Facebook
+  email?: string;       // อีเมล (Optional)
   nickname?: string;    // ชื่อเล่น (Optional)
   position?: string;   // ตำแหน่ง (Optional)
 }

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Entrepreneur, Role } from '../types';
 import Modal from './Modal';
-import { PlusIcon, BuildingIcon, PhoneIcon, PencilIcon, TrashIcon, ExclamationTriangleIcon, Squares2X2Icon, ListBulletIcon, BriefcaseIcon, UserGroupIcon, EyeIcon, ChevronDownIcon, FunnelIcon, MagnifyingGlassIcon, ArrowLeftIcon, BuildingOffice2Icon } from './icons';
+import { PlusIcon, BuildingIcon, PhoneIcon, PencilIcon, TrashIcon, ExclamationTriangleIcon, Squares2X2Icon, ListBulletIcon, BriefcaseIcon, UserGroupIcon, EyeIcon, ChevronDownIcon, FunnelIcon, MagnifyingGlassIcon, ArrowLeftIcon, BuildingOffice2Icon, EnvelopeIcon } from './icons';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext'; // Added useAuth
 import { dataService } from '../services/dataService';
@@ -10,7 +10,7 @@ import { useData } from '../contexts/DataContext';
 import Pagination from './Pagination';
 
 const emptyEntrepreneurForm: Omit<Entrepreneur, 'id'> & { id?: string } = {
-  name: '', businessName: '', contact: '', establishmentType: '', businessCategory: '', address: '', lineId: '', facebook: '', nickname: '', position: ''
+  name: '', businessName: '', contact: '', establishmentType: '', businessCategory: '', address: '', lineId: '', facebook: '', email: '', nickname: '', position: ''
 };
 
 const CardView = ({ data, userRole, onView, onEdit, onDelete }: { data: Entrepreneur[], userRole: Role, onView: (ent: Entrepreneur) => void, onEdit: (ent: Entrepreneur) => void, onDelete: (ent: Entrepreneur) => void }) => (
@@ -358,6 +358,11 @@ const EntrepreneurView: React.FC = () => { // Removed props
               <label className="block text-sm font-medium text-slate-700 mb-1">Facebook</label>
               <input type="text" placeholder="Facebook" value={formData.facebook} onChange={e => setFormData({ ...formData, facebook: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
             </div>
+
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">E-mail (ไม่บังคับ)</label>
+              <input type="email" placeholder="example@email.com" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
           </div>
 
           <div>
@@ -419,6 +424,10 @@ const EntrepreneurView: React.FC = () => { // Removed props
           <div>
             <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Facebook</label>
             <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.facebook || '-'}</p>
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">E-mail</label>
+            <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.email || '-'}</p>
           </div>
         </div>
 
