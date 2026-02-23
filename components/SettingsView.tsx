@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import UserManagementView from './UserManagementView';
 import ActivityLogView from './ActivityLogView';
+import AiKnowledgeBaseView from './AiKnowledgeBaseView';
 import Modal from './Modal';
 import { useNotification } from '../contexts/NotificationContext';
-import { PlusIcon, PencilIcon, TrashIcon, ExclamationTriangleIcon, UserCircleIcon, BuildingIcon, BriefcaseIcon, CalendarIcon, MagnifyingGlassIcon, ClipboardDocumentListIcon } from './icons';
+import { PlusIcon, PencilIcon, TrashIcon, ExclamationTriangleIcon, UserCircleIcon, BuildingIcon, BriefcaseIcon, CalendarIcon, MagnifyingGlassIcon, ClipboardDocumentListIcon, SparklesIcon } from './icons';
 import { dataService } from '../services/dataService';
 import { useData } from '../contexts/DataContext';
 import Pagination from './Pagination';
@@ -262,6 +263,7 @@ const SettingsView: React.FC = () => {
     { id: 'establishment', name: 'ประเภทสถานประกอบการ', icon: BuildingIcon },
     { id: 'category', name: 'หมวดธุรกิจ', icon: BriefcaseIcon },
     { id: 'fiscal', name: 'ปีงบประมาณ', icon: CalendarIcon },
+    { id: 'ai-knowledge', name: 'ฐานข้อมูล AI', icon: SparklesIcon },
     { id: 'activity-log', name: 'บันทึกกิจกรรม', icon: ClipboardDocumentListIcon },
   ];
 
@@ -365,6 +367,7 @@ const SettingsView: React.FC = () => {
               setFiscalYears(updated);
             }}
           />}
+          {activeTab === 'ai-knowledge' && <AiKnowledgeBaseView />}
           {activeTab === 'activity-log' && <ActivityLogView />}
         </div>
       </div>

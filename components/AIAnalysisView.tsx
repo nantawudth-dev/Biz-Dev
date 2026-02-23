@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Consultant, Entrepreneur, Course } from '../types';
+import { Consultant, Entrepreneur, Course, AiKnowledgeBase } from '../types';
 import { SparklesIcon, BuildingOffice2Icon, UserCircleIcon, ArrowPathIcon, AcademicCapIcon, PhoneIcon, EnvelopeIcon } from './icons';
 import { useNotification } from '../contexts/NotificationContext';
 import { dataService } from '../services/dataService';
@@ -10,6 +10,7 @@ const AIAnalysisView: React.FC = () => { // Removed props
     const [entrepreneurs, setEntrepreneurs] = useState<Entrepreneur[]>([]);
     const [consultants, setConsultants] = useState<Consultant[]>([]);
     const [courses, setCourses] = useState<Course[]>([]);
+    const [aiKnowledgeBase, setAiKnowledgeBase] = useState<AiKnowledgeBase[]>([]);
     const [isLoadingData, setIsLoadingData] = useState(true);
     const { data, fetchData } = useData();
     const { showNotification } = useNotification();
@@ -20,14 +21,14 @@ const AIAnalysisView: React.FC = () => { // Removed props
     const [problemDescription, setProblemDescription] = useState<string>('');
     const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
     const [analysisResult, setAnalysisResult] = useState<string | null>(null);
-    const [recommendedConsultants, setRecommendedConsultants] = useState<Consultant[]>([]);
+    const [recommendedConsultants, setRecommendedConsultants] = useState<{ consultant: Consultant, score: number, reasons: string[] }[]>([]);
     const [recommendedCourses, setRecommendedCourses] = useState<Course[]>([]);
 
     // Fetch data using DataContext on mount
     useEffect(() => {
         const loadAIAnalysisData = async () => {
             try {
-                const hasAllData = data.entrepreneurs && data.consultants && data.courses;
+                const hasAllData = data.entrepreneurs && data.consultants && data.courses && data.aiKnowledgeBase;
                 if (!hasAllData) {
                     setIsLoadingData(true);
                 }
@@ -35,7 +36,8 @@ const AIAnalysisView: React.FC = () => { // Removed props
                 await Promise.all([
                     fetchData('entrepreneurs', () => dataService.getEntrepreneurs()),
                     fetchData('consultants', () => dataService.getConsultants()),
-                    fetchData('courses', () => dataService.getCourses())
+                    fetchData('courses', () => dataService.getCourses()),
+                    fetchData('aiKnowledgeBase', () => dataService.getAiKnowledgeBase())
                 ]);
             } catch (error) {
                 console.error('Failed to fetch data for AI Analysis:', error);
@@ -45,16 +47,17 @@ const AIAnalysisView: React.FC = () => { // Removed props
             }
         };
         loadAIAnalysisData();
-    }, [fetchData, showNotification, data.entrepreneurs, data.consultants, data.courses]);
+    }, [fetchData, showNotification, data.entrepreneurs, data.consultants, data.courses, data.aiKnowledgeBase]);
 
     // Sync from DataContext when the cached data changes
     useEffect(() => {
         if (data.entrepreneurs) setEntrepreneurs(data.entrepreneurs);
         if (data.consultants) setConsultants(data.consultants);
         if (data.courses) setCourses(data.courses);
-    }, [data.entrepreneurs, data.consultants, data.courses]);
+        if (data.aiKnowledgeBase) setAiKnowledgeBase(data.aiKnowledgeBase.filter((kb: AiKnowledgeBase) => kb.isActive));
+    }, [data.entrepreneurs, data.consultants, data.courses, data.aiKnowledgeBase]);
 
-    const handleAnalyze = () => {
+    const handleAnalyze = async () => {
         if (!problemDescription.trim() || !selectedEntrepreneurId) return;
 
         setIsAnalyzing(true);
@@ -62,17 +65,49 @@ const AIAnalysisView: React.FC = () => { // Removed props
         setRecommendedConsultants([]);
         setRecommendedCourses([]);
 
-        // Simulate AI Analysis Delay
-        setTimeout(() => {
-            const result = generateAnalysis(problemDescription);
-            const experts = findExperts(problemDescription, consultants);
-            const suggestedCourses = findCourses(problemDescription, courses);
+        const ent = entrepreneurs.find(e => e.id === selectedEntrepreneurId);
+        let llmKeywords: string[] = [];
+        let llmStage: string = '';
 
-            setAnalysisResult(result);
+        try {
+            const prompt = `ในฐานะผู้เชี่ยวชาญด้านที่ปรึกษาธุรกิจ กรุณาวิเคราะห์ปัญหาและให้คำแนะนำเบื้องต้นที่นำไปปฏิบัติได้จริง (Actionable Advice) สำหรับธุรกิจดังต่อไปนี้:
+ชื่อบริษัท: ${ent?.businessName || 'ไม่ระบุ'}
+ประเภทธุรกิจ: ${ent?.businessCategory || 'ไม่ระบุ'}
+ปัญหาที่พบ: ${problemDescription}
+
+กรุณาวิเคราะห์และตอบกลับในรูปแบบ JSON ตาม Format นี้เท่านั้น (ห้ามแทรกข้อความอื่น):
+{
+  "analysis": "คำแนะนำเชิงลึกแบบย่อหน้า ไม่เกิน 3-4 ประเด็นหลัก แนะนำวิธีแก้ปัญหาเบื้องต้นในทางปฏิบัติ",
+  "keywords": ["คำสำคัญ1", "คำสำคัญ2"],
+  "business_stage": "startup, sme, หรือ enterprise"
+}`;
+
+            const result = await dataService.analyzeWithGemini(prompt);
+            setAnalysisResult(result.analysis);
+            llmKeywords = result.keywords || [];
+            llmStage = result.business_stage || '';
+        } catch (error: any) {
+            console.error('LLM Analysis Error:', error);
+            if (error.message === 'RATE_LIMIT') {
+                showNotification('ระบบวิเคราะห์ AI มีผู้ใช้งานจำนวนมาก กรุณารอสักครู่ (ประมาณ 1 นาที) แล้วลองใหม่อีกครั้ง', 'warning');
+            } else if (error.message === 'API_KEY_MISSING') {
+                showNotification('ตั้งค่า GEMINI_API_KEY ไม่สมบูรณ์ กำลังสลับไปใช้การวิเคราะห์แบบพื้นฐานแทน', 'warning');
+            } else {
+                showNotification('เกิดข้อผิดพลาดในการเชื่อมต่อ AI กำลังสลับไปใช้การวิเคราะห์แบบพื้นฐานแทน', 'error');
+            }
+
+            // Fallback to Rule-based algorithm
+            const fallbackResult = generateAnalysis(problemDescription);
+            setAnalysisResult(fallbackResult);
+        } finally {
+            // These steps run whether LLM success or fail
+            const experts = findExperts(problemDescription, consultants, ent, llmKeywords);
+            const suggestedCourses = findCourses(problemDescription, courses, llmKeywords, llmStage);
+
             setRecommendedConsultants(experts);
             setRecommendedCourses(suggestedCourses);
             setIsAnalyzing(false);
-        }, 2000);
+        }
     };
 
     // Start of AI Analysis Logic
@@ -81,11 +116,11 @@ const AIAnalysisView: React.FC = () => { // Removed props
         let combinedResponse = '';
         const foundCategories = new Set<string>();
 
-        Object.values(EXPERTISE_DICTIONARY).forEach(category => {
+        aiKnowledgeBase.forEach(category => {
             if (category.terms.some(term => textLower.includes(term.toLowerCase()))) {
-                if (!foundCategories.has(category.id)) {
+                if (!foundCategories.has(category.categoryId)) {
                     combinedResponse += (combinedResponse ? '\n\n' : '') + category.response;
-                    foundCategories.add(category.id);
+                    foundCategories.add(category.categoryId);
                 }
             }
         });
@@ -97,37 +132,91 @@ const AIAnalysisView: React.FC = () => { // Removed props
         return combinedResponse;
     };
 
-    const findExperts = (text: string, allConsultants: Consultant[]): Consultant[] => {
+    const findExperts = (text: string, allConsultants: Consultant[], entrepreneur: Entrepreneur | undefined, llmKeywords: string[] = []): { consultant: Consultant, score: number, reasons: string[] }[] => {
         const textLower = text.toLowerCase();
         const matchedCategoryIds = new Set<string>();
+        // Extract all individual words/phrases from problem description for direct matching
+        // Simple tokenization by spaces and common Thai/English punctuation
+        const stopWords = ['และ', 'หรือ', 'แต่', 'ของ', 'ใน', 'การ', 'เพื่อ', 'ที่', 'ไป', 'เป็น', 'สำหรับ'];
+        const textTokens = textLower.split(/[\s,.;()-]+/).filter(w => w.length > 2 && !stopWords.includes(w));
+
+        // Add LLM Keywords to tokens
+        const allKeywords = [...textTokens, ...(llmKeywords.map(kw => kw.toLowerCase()))];
 
         // 1. Identify relevant categories
-        Object.values(EXPERTISE_DICTIONARY).forEach(category => {
-            if (category.terms.some(term => textLower.includes(term.toLowerCase()))) {
-                matchedCategoryIds.add(category.id);
+        aiKnowledgeBase.forEach(category => {
+            if (category.terms.some(term => textLower.includes(term.toLowerCase()) || llmKeywords.some(kw => kw.toLowerCase().includes(term.toLowerCase())))) {
+                matchedCategoryIds.add(category.categoryId);
             }
         });
 
-        // 2. Filter consultants based on expertise string
-        return allConsultants.filter(consultant => {
-            if (!consultant.expertise) return false;
-            const expLower = consultant.expertise.toLowerCase();
-            return Array.from(matchedCategoryIds).some(catId => {
-                const category = EXPERTISE_DICTIONARY[catId];
-                // Check if any keyword matches the expertise description
-                return category.terms.some(term => expLower.includes(term.toLowerCase()));
+        // 2. Score and filter consultants
+        const scoredConsultants = allConsultants.map(consultant => {
+            let score = 0;
+            const reasons: string[] = [];
+            const expLower = (consultant.expertise || '').toLowerCase();
+            const cvLower = (consultant.cv || '').toLowerCase();
+
+            if (!expLower && !cvLower) return { consultant, score, reasons };
+
+            // A. High Score for Direct Word Match between Problem Text and Expertise string
+            const matchedKeywords: string[] = [];
+            allKeywords.forEach(token => {
+                let matched = false;
+                if (expLower.includes(token)) {
+                    score += 10; // High weight for direct problem keyword matching expertise
+                    matchedKeywords.push(token);
+                    matched = true;
+                }
+                if (!matched && cvLower.includes(token)) {
+                    score += 7; // Medium-High weight for direct problem keyword matching CV text
+                    if (!matchedKeywords.includes(token)) matchedKeywords.push(token);
+                }
             });
+            if (matchedKeywords.length > 0) {
+                reasons.push(`พบคำสำคัญที่เกี่ยวข้อง: ${matchedKeywords.join(', ')}`);
+            }
+
+            // B. Medium Score for Category Match
+            const matchedCategories: string[] = [];
+            Array.from(matchedCategoryIds).forEach(catId => {
+                const category = aiKnowledgeBase.find(kb => kb.categoryId === catId);
+                if (category && category.terms.some(term => expLower.includes(term.toLowerCase()) || cvLower.includes(term.toLowerCase()))) {
+                    score += 5; // Base score for being in the right category
+                    matchedCategories.push(category.categoryNameTh);
+                }
+            });
+            if (matchedCategories.length > 0) {
+                reasons.push(`ความเชี่ยวชาญตรงกับหมวดหมู่ปัญหา: ${matchedCategories.join(', ')}`);
+            }
+
+            // C. Experience Bonus based on Entrepreneur's business category
+            if (entrepreneur && entrepreneur.businessCategory) {
+                const businessCatLower = entrepreneur.businessCategory.toLowerCase();
+                if (expLower.includes(businessCatLower) || cvLower.includes(businessCatLower)) {
+                    score += 5; // Bonus for explicit business category matching
+                    reasons.push(`มีประสบการณ์ตรงในอุตสาหกรรม/หมวดธุรกิจ: ${entrepreneur.businessCategory}`);
+                }
+            }
+
+            return { consultant, score, reasons };
         });
+
+        // 3. Filter out zero scores and sort by highest score first
+        return scoredConsultants
+            .filter(item => item.score > 0)
+            .sort((a, b) => b.score - a.score);
     };
 
-    const findCourses = (text: string, allCourses: Course[]): Course[] => {
+    const findCourses = (text: string, allCourses: Course[], llmKeywords: string[] = [], businessStage: string = ''): Course[] => {
         const textLower = text.toLowerCase();
+        const stageLower = businessStage.toLowerCase();
         const matchedCategoryIds = new Set<string>();
 
-        // 1. Identify relevant categories
-        Object.values(EXPERTISE_DICTIONARY).forEach(category => {
-            if (category.terms.some(term => textLower.includes(term.toLowerCase()))) {
-                matchedCategoryIds.add(category.id);
+        // 1. Identify relevant categories based on rules + LLM keywords
+        aiKnowledgeBase.forEach(category => {
+            if (category.terms.some(term => textLower.includes(term.toLowerCase()) || llmKeywords.some(kw => kw.toLowerCase().includes(term.toLowerCase())))) {
+                matchedCategoryIds.add(category.categoryId);
             }
         });
 
@@ -138,54 +227,93 @@ const AIAnalysisView: React.FC = () => { // Removed props
 
             // Check if course matches any identified category keywords
             const matchesCategory = Array.from(matchedCategoryIds).some(catId => {
-                const category = EXPERTISE_DICTIONARY[catId];
+                const category = aiKnowledgeBase.find(kb => kb.categoryId === catId);
+                if (!category) return false;
                 return category.terms.some(term =>
                     titleLower.includes(term.toLowerCase()) ||
                     descLower.includes(term.toLowerCase())
                 );
             });
 
-            return matchesCategory;
+            // Check business stage matching if provided
+            let matchesStage = true;
+            if (stageLower) {
+                // If the description explicitly mentions a specific stage, increase priority or let it pass
+                // We're keeping it simple for now and letting matchesCategory be the main decider, but adding a basic stage check
+                if (stageLower === 'startup' && (descLower.includes('enterprise') || descLower.includes('ขนาดใหญ่'))) {
+                    matchesStage = false; // Exclude enterprise courses for startups
+                }
+            }
+
+            return matchesCategory && matchesStage;
         });
     };
 
-    // Bilingual Expertise Dictionary
-    const EXPERTISE_DICTIONARY: Record<string, { id: string, terms: string[], response: string }> = {
-        marketing: {
-            id: 'marketing',
-            terms: ['marketing', 'sales', 'sell', 'brand', 'market', 'customer', 'crm', 'seo', 'sem', 'social media', 'online', 'ads', 'content', 'การตลาด', 'ขาย', 'ยอดขาย', 'แบรนด์', 'ลูกค้า', 'การสร้างแบรนด์', 'โฆษณา', 'คอนเทนต์', 'โปรโมชั่น'],
-            response: '📊 **ด้านการตลาดและการขาย**: แนะนำให้เน้นการสร้างแบรนด์ (Branding) ให้แข็งแกร่งและการทำการตลาดออนไลน์ (Digital Marketing) เพื่อเพิ่มการเข้าถึงลูกค้ากลุ่มใหม่ รวมถึงการนำระบบ CRM มาใช้เพื่อรักษาฐานลูกค้าเก่าและวิเคราะห์พฤติกรรมผู้บริโภค'
-        },
-        finance: {
-            id: 'finance',
-            terms: ['finance', 'accounting', 'tax', 'profit', 'loss', 'cost', 'budget', 'money', 'invest', 'loan', 'debt', 'cash flow', 'statement', 'การเงิน', 'บัญชี', 'ภาษี', 'กำไร', 'ขาดทุน', 'ต้นทุน', 'งบประมาณ', 'ลงทุน', 'หนี้', 'กระแสเงินสด', 'กู้', 'สินเชื่อ'],
-            response: '💰 **ด้านการเงินและบัญชี**: ควรเริ่มต้นจากการจัดทำบัญชีรายรับ-รายจ่ายที่ชัดเจน แยกบัญชีส่วนตัวกับธุรกิจ วิเคราะห์จุดคุ้มทุน (Break-even Point) และวางแผนกระแสเงินสด (Cash Flow Management) เพื่อให้ธุรกิจมีสภาพคล่องเพียงพอ รวมถึงการวางแผนภาษีอย่างถูกต้อง'
-        },
-        production: {
-            id: 'production',
-            terms: ['production', 'manufacture', 'factory', 'machine', 'quality', 'qc', 'qa', 'lean', 'waste', 'stock', 'inventory', 'warehouse', 'การผลิต', 'โรงงาน', 'เครื่องจักร', 'คุณภาพ', 'คลังสินค้า', 'สินค้าคงคลัง', 'ผลิต'],
-            response: '🏭 **ด้านการผลิตและการจัดการ**: แนะนำให้ตรวจสอบกระบวนการผลิตเพื่อลดความสูญเสีย (Waste Reduction) ตามแนวคิด Lean Manufacturing เพิ่มประสิทธิภาพการจัดการสต็อกสินค้า (Inventory Management) และนำเทคโนโลยีมาช่วยในการควบคุมคุณภาพสินค้า (QC/QA)'
-        },
-        technology: {
-            id: 'technology',
-            terms: ['technology', 'it', 'software', 'app', 'system', 'digital', 'data', 'ai', 'iot', 'automation', 'dev', 'transformation', 'cloud', 'platform', 'เทคโนโลยี', 'ซอฟต์แวร์', 'แอปพลิเคชัน', 'ระบบ', 'ดิจิทัล', 'ข้อมูล', 'อัตโนมัติ', 'แพลตฟอร์ม', 'โปรแกรม'],
-            response: '💻 **ด้านเทคโนโลยีและนวัตกรรม**: การนำเทคโนโลยีมาใช้จะช่วยเพิ่มประสิทธิภาพในการทำงานได้อย่างมาก (Digital Transformation) แนะนำให้เริ่มต้นจากระบบพื้นฐาน เช่น POS, ERP หรือระบบจัดการร้านค้าออนไลน์ และพิจารณาการใช้ Data Analytics เพื่อช่วยในการตัดสินใจทางธุรกิจ'
-        },
-        management: {
-            id: 'management',
-            terms: ['management', 'hr', 'human', 'employee', 'staff', 'team', 'recruit', 'strategy', 'business plan', 'kpi', 'okr', 'leadership', 'organization', 'การบริหาร', 'ทรัพยากรบุคคล', 'คน', 'พนักงาน', 'ทีมงาน', 'กลยุทธ์', 'แผนธุรกิจ', 'สรรหา', 'ผู้นำ', 'องค์กร', 'จัดการ'],
-            response: '👥 **ด้านการบริหารจัดการและกลยุทธ์**: ปัญหาด้านคนและองค์กรเป็นเรื่องละเอียดอ่อน ควรเน้นการสื่อสารภายในองค์กรที่ชัดเจน (Communication) การกำหนดเป้าหมายร่วมกัน (KPI/OKR) และการพัฒนาทักษะพนักงาน (Upskilling) เพื่อให้ทีมงานมีประสิทธิภาพและมีความสุขในการทำงาน'
-        },
-        logistics: {
-            id: 'logistics',
-            terms: ['logistics', 'transport', 'shipping', 'delivery', 'supply chain', 'distribution', 'warehouse', 'fleet', 'route', 'export', 'import', 'โลจิสติกส์', 'ขนส่ง', 'จัดส่ง', 'กระจายสินค้า', 'คลังสินค้า', 'ซัพพลายเชน', 'นำเข้า', 'ส่งออก', 'ยานพาหนะ', 'เส้นทาง'],
-            response: '🚚 **ด้านโลจิสติกส์และการขนส่ง**: เพื่อเพิ่มประสิทธิภาพในการดำเนินงาน ควรพิจารณาการบริหารจัดการซัพพลายเชน (Supply Chain Management) การวางแผนเส้นทางการขนส่งให้คุ้มค่า (Route Optimization) และการใช้เทคโนโลยีในการติดตามสถานะสินค้า (Tracking System) เพื่อความรวดเร็วและแม่นยำ'
-        },
-        sustainability: {
-            id: 'sustainability',
-            terms: ['sustainability', 'sustainable', 'green', 'environment', 'eco', 'circular economy', 'carbon', 'waste management', 'energy', 'solar', 'esg', 'ความยั่งยืน', 'สิ่งแวดล้อม', 'สีเขียว', 'ขยะ', 'พลังงาน', 'คาร์บอน', 'หมุนเวียน', 'นิเวศ', 'ลดโลกร้อน'],
-            response: '🌿 **ด้านความยั่งยืนและสิ่งแวดล้อม**: การดำเนินธุรกิจที่ใส่ใจสิ่งแวดล้อม (ESG) เป็นเทรนด์สำคัญ ควรเริ่มจากการจัดการของเสีย (Waste Management) การใช้พลังงานทางเลือก (Renewable Energy) หรือการปรับโมเดลธุรกิจเป็นเศรษฐกิจหมุนเวียน (Circular Economy) ซึ่งจะช่วยลดต้นทุนและสร้างภาพลักษณ์ที่ดี'
-        }
+
+    // Dictionary for translating terms to academic Thai format
+    const ACADEMIC_TERMS_DICTIONARY: Record<string, string> = {
+        'marketing': 'กลยุทธ์การตลาด (Marketing Strategy)',
+        'sales': 'การบริหารงานขาย (Sales Management)',
+        'brand': 'การสร้างและบริหารแบรนด์ (Brand Management)',
+        'market': 'การวิเคราะห์การตลาด (Market Analysis)',
+        'finance': 'การบัญชีและการบริหารการเงิน (Financial Management & Accounting)',
+        'accounting': 'การบัญชี (Accounting)',
+        'tax': 'การวางแผนภาษีอากร (Tax Planning)',
+        'budget': 'การจัดการงบประมาณ (Budget Management)',
+        'invest': 'การวิเคราะห์การลงทุน (Investment Analysis)',
+        'production': 'การบริหารการจัดการการผลิต (Production Management)',
+        'quality': 'การควบคุมคุณภาพ (Quality Control)',
+        'lean': 'ระบบการผลิตแบบลีน (Lean Manufacturing System)',
+        'technology': 'เทคโนโลยีสารสนเทศเพื่อการจัดการ (Management Information Technology)',
+        'software': 'วิศวกรรมซอฟต์แวร์ (Software Engineering)',
+        'data': 'วิทยาการข้อมูลและการวิเคราะห์ (Data Science & Analytics)',
+        'hr': 'การบริหารทรัพยากรมนุษย์ (Human Resource Management)',
+        'strategy': 'การบริหารเชิงกลยุทธ์ (Strategic Management)',
+        'leadership': 'ภาวะผู้นำทางธุรกิจ (Business Leadership)',
+        'supply chain': 'การจัดการโซ่อุปทาน (Supply Chain Management)',
+        'logistics': 'การจัดการลอจิสติกส์และโซ่อุปทาน (Logistics and Supply Chain Management)',
+        'sustainability': 'การพัฒนาอย่างยั่งยืน (Sustainable Development)',
+        'environment': 'การจัดการสิ่งแวดล้อม (Environmental Management)',
+        'project management': 'การบริหารโครงการ (Project Management)',
+        'construction engineering': 'วิศวกรรมการก่อสร้าง (Construction Engineering)',
+        'construction': 'การบริหารวิศวกรรมก่อสร้าง (Construction Engineering Management)',
+        'traffic': 'วิศวกรรมการจราจรและการขนส่ง (Traffic & Transportation Engineering)',
+        'transportation': 'วิศวกรรมการจราจรและการขนส่ง (Traffic & Transportation Engineering)',
+        'real estate': 'การพัฒนาอสังหาริมทรัพย์ (Real Estate Development)',
+        'family business': 'การบริหารธุรกิจครอบครัว (Family Business Management)',
+        'management': 'การบริหารจัดการและกลยุทธ์องค์กร (Strategic Organization Management)', // generic generic last
+    };
+
+    // Helper to extract and format expertise text to Thai Academic Context
+    const getTranslatedExpertise = (expertiseStr: string): string => {
+        if (!expertiseStr) return 'ไม่ระบุ';
+        const rawExpertises = expertiseStr.split(',').map(s => s.trim());
+        const mappedTerms: string[] = [];
+
+        // Sort dictionary keys by length descending to match longest (most specific) terms first
+        const sortedDictKeys = Object.keys(ACADEMIC_TERMS_DICTIONARY).sort((a, b) => b.length - a.length);
+
+        rawExpertises.forEach(exp => {
+            const expLower = exp.toLowerCase();
+            let hasMatch = false;
+
+            // Check against academic glossary
+            for (const key of sortedDictKeys) {
+                if (expLower.includes(key)) {
+                    mappedTerms.push(ACADEMIC_TERMS_DICTIONARY[key]);
+                    hasMatch = true;
+                    break; // Use the first match per term to avoid overlaps
+                }
+            }
+
+            // Fallback: If not mapped, keep original
+            if (!hasMatch) {
+                mappedTerms.push(exp);
+            }
+        });
+
+        // Deduplicate and join
+        return Array.from(new Set(mappedTerms)).join(', ');
     };
 
     const filteredEntrepreneurs = entrepreneurs.filter(ent =>
@@ -334,22 +462,47 @@ const AIAnalysisView: React.FC = () => { // Removed props
                                 <UserCircleIcon className="w-5 h-5 text-slate-500" />
                                 ผู้เชี่ยวชาญที่แนะนำ
                             </h3>
-                            <div className="space-y-3">
-                                {recommendedConsultants.map(consultant => (
-                                    <div key={consultant.id} className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
-                                        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold shrink-0">
-                                            {consultant.firstName.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <h4 className="font-semibold text-slate-800">{consultant.title}{consultant.firstName} {consultant.lastName}</h4>
-                                            <p className="text-sm text-slate-500 font-medium line-clamp-1">{consultant.workplace}</p>
-                                            <p className="text-sm text-slate-600 mt-1 line-clamp-2 bg-slate-50 p-1 rounded">
-                                                <span className="font-semibold text-xs text-slate-400 uppercase tracking-wide mr-1">ความเชี่ยวชาญ:</span>
-                                                {consultant.expertise}
-                                            </p>
-                                            <div className="flex gap-3 mt-2 text-xs text-slate-500">
-                                                {consultant.phone && <span className="flex items-center gap-1"><PhoneIcon className="w-3 h-3" /> {consultant.phone}</span>}
-                                                {consultant.email && <span className="flex items-center gap-1"><EnvelopeIcon className="w-3 h-3" /> {consultant.email}</span>}
+                            <div className="space-y-4">
+                                {recommendedConsultants.map((item, index) => (
+                                    <div key={item.consultant.id || index} className="flex items-start gap-4 p-4 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/30 transition-all bg-white shadow-sm">
+                                        <div className="flex-1">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <h4 className="font-semibold text-slate-800 text-lg">{item.consultant.title}{item.consultant.firstName} {item.consultant.lastName}</h4>
+                                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full font-bold text-sm">
+                                                    <span>⭐</span> Match Score: {item.score}
+                                                </div>
+                                            </div>
+                                            <p className="text-sm text-slate-600 font-medium mb-2">{item.consultant.workplace}</p>
+
+                                            <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 mb-3">
+                                                <p className="text-sm text-slate-700">
+                                                    <span className="font-semibold text-xs text-slate-500 uppercase tracking-wide mr-2">ความเชี่ยวชาญ:</span>
+                                                    {getTranslatedExpertise(item.consultant.expertise)}
+                                                </p>
+                                            </div>
+
+                                            {item.reasons.length > 0 && (
+                                                <div className="bg-blue-50/60 p-3 rounded-lg border border-blue-100 mb-3">
+                                                    <span className="text-xs font-semibold text-blue-800 flex items-center gap-1 mb-1.5">
+                                                        <SparklesIcon className="w-3.5 h-3.5" />
+                                                        เหตุผลที่แนะนำ (AI Reasoning):
+                                                    </span>
+                                                    <ul className="text-xs text-slate-700 space-y-1 list-disc list-inside ml-1">
+                                                        {item.reasons.map((reason, idx) => (
+                                                            <li key={idx} className="leading-relaxed">{reason}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            <div className="flex flex-wrap gap-3 mt-1 text-xs text-slate-500 pt-2 border-t border-slate-100">
+                                                {item.consultant.phone && <span className="flex items-center gap-1"><PhoneIcon className="w-3.5 h-3.5" /> {item.consultant.phone}</span>}
+                                                {item.consultant.email && <span className="flex items-center gap-1"><EnvelopeIcon className="w-3.5 h-3.5" /> {item.consultant.email}</span>}
+                                                {item.consultant.cv_url && (
+                                                    <a href={item.consultant.cv_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-medium transition-colors ml-auto">
+                                                        <span className="text-sm">📄</span> ดูประวัติย่อฉบับเต็ม
+                                                    </a>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -397,7 +550,7 @@ const AIAnalysisView: React.FC = () => { // Removed props
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

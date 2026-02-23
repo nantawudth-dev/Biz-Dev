@@ -68,14 +68,25 @@ export interface Consultant {
   firstName: string;
   lastName: string;
   expertise: string; // Changed to string (previously string[])
+  cv?: string;
+  cv_url?: string;
   phone: string;
   workplace: string;
   email?: string;
   imageUrl?: string;
 }
 
+export interface AiKnowledgeBase {
+  id: string;
+  categoryId: string; // e.g., 'marketing'
+  categoryNameTh: string; // e.g., 'การตลาดและการขาย'
+  terms: string[];
+  response: string;
+  isActive: boolean;
+}
+
 export type LogAction = 'create' | 'update' | 'delete';
-export type LogEntityType = 'entrepreneur' | 'project' | 'course' | 'consultant' | 'user' | 'establishment_type' | 'business_category' | 'fiscal_year';
+export type LogEntityType = 'entrepreneur' | 'project' | 'course' | 'consultant' | 'user' | 'establishment_type' | 'business_category' | 'fiscal_year' | 'ai_knowledge_base';
 
 export interface ActivityLog {
   id: string;

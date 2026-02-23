@@ -14,6 +14,8 @@ const emptyConsultantForm: Omit<Consultant, 'id'> = {
   firstName: '',
   lastName: '',
   expertise: '',
+  cv: '',
+  cv_url: '',
   phone: '',
   workplace: '',
   email: '',
@@ -179,6 +181,18 @@ const ConsultantView: React.FC = () => { // Removed props
               <label className="block text-sm font-medium text-slate-700 mb-1">ความเชี่ยวชาญ</label>
               <textarea placeholder="ระบุความเชี่ยวชาญ" value={formData.expertise} onChange={e => setFormData({ ...formData, expertise: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors h-24 font-body" required />
             </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">สรุปประวัติย่อ / ประสบการณ์ (สำหรับให้ AI วิเคราะห์สกัดคำสำคัญ)</label>
+              <textarea placeholder="ระบุคีย์เวิร์ด หรือสรุปประสบการณ์สั้นๆ เพื่อให้ AI สามารถจับคู่ความเชี่ยวชาญได้แม่นยำขึ้น" value={formData.cv || ''} onChange={e => setFormData({ ...formData, cv: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors h-24 font-body" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">ลิงก์ประวัติย่อฉบับเต็ม (CV Link)</label>
+              <input type="url" placeholder="เช่น ลิงก์ Google Drive, LinkedIn หรือ Portfolio" value={formData.cv_url || ''} onChange={e => setFormData({ ...formData, cv_url: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">อีเมล</label>
+              <input type="email" placeholder="ระบุอีเมล" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">เบอร์โทรศัพท์</label>
               <input type="text" placeholder="เบอร์โทรศัพท์ติดต่อ" value={formData.phone || ''} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
@@ -186,10 +200,6 @@ const ConsultantView: React.FC = () => { // Removed props
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">หน่วยงาน/สังกัด</label>
               <input type="text" placeholder="ระบุหน่วยงาน" value={formData.workplace || ''} onChange={e => setFormData({ ...formData, workplace: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">อีเมล</label>
-              <input type="email" placeholder="ระบุอีเมล" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">ลิงก์รูปภาพ (Image URL)</label>
@@ -278,7 +288,18 @@ const ConsultantView: React.FC = () => { // Removed props
               </div>
 
               <div>
-                {/* Placeholder for other details if strictly needed, or leave empty/merged */}
+                <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <BriefcaseIcon className="w-4 h-4 text-emerald-500" /> ประวัติย่อ (CV)
+                </h4>
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 space-y-3">
+                  {viewingConsultant.cv_url ? (
+                    <a href={viewingConsultant.cv_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors w-full justify-center shadow-sm">
+                      <ListBulletIcon className="w-5 h-5" /> ดูประวัติย่อฉบับเต็ม
+                    </a>
+                  ) : (
+                    <p className="text-slate-500 text-sm italic text-center py-2 bg-white rounded-md border border-slate-200">ไม่ได้ระบุลิงก์ประวัติย่อ</p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -339,7 +360,7 @@ const ConsultantView: React.FC = () => { // Removed props
                       </div>
                     </div>
                     <div className="mt-2 mb-4 flex-grow">
-                      <p className="text-sm text-slate-600 line-clamp-2 font-body bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <p className="text-sm text-slate-600 font-body bg-slate-50 p-3 rounded-lg border border-slate-100 whitespace-pre-wrap">
                         <span className="font-semibold text-slate-700 block mb-1 text-xs uppercase tracking-wide">ความเชี่ยวชาญ</span>
                         {consultant.expertise}
                       </p>
@@ -367,7 +388,6 @@ const ConsultantView: React.FC = () => { // Removed props
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อ-นามสกุล</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">หน่วยงาน</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ความเชี่ยวชาญ</th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">จัดการ</th>
                     </tr>
                   </thead>
@@ -380,9 +400,6 @@ const ConsultantView: React.FC = () => { // Removed props
                         </td>
                         <td data-label="หน่วยงาน" className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-slate-500">{consultant.workplace || '-'}</div>
-                        </td>
-                        <td data-label="ความเชี่ยวชาญ" className="px-6 py-4">
-                          <div className="text-sm text-slate-600 line-clamp-1">{consultant.expertise}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end gap-3">

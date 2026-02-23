@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Entrepreneur, Project, Consultant, Course, ActivityLog, LogAction, LogEntityType } from '../types';
+import { Entrepreneur, Project, Consultant, Course, ActivityLog, LogAction, LogEntityType, AiKnowledgeBase } from '../types';
 
 // Helper: get current user info for logging
 const getCurrentUser = async () => {
@@ -354,6 +354,8 @@ export const dataService = {
                 firstName,
                 lastName,
                 expertise: Array.isArray(item.expertise) ? item.expertise.join(', ') : (item.expertise || ''),
+                cv: item.cv,
+                cv_url: item.cv_url,
                 phone: item.phone,
                 workplace: item.workplace,
                 email: item.contact_email,
@@ -376,7 +378,9 @@ export const dataService = {
                 contact_email: consultant.email,
                 phone: consultant.phone,
                 workplace: consultant.workplace,
-                image_url: consultant.imageUrl
+                image_url: consultant.imageUrl,
+                cv: consultant.cv,
+                cv_url: consultant.cv_url
             }])
             .select()
             .single();
@@ -393,6 +397,8 @@ export const dataService = {
             firstName: consultant.firstName,
             lastName: consultant.lastName,
             expertise: consultant.expertise || '',
+            cv: data.cv,
+            cv_url: data.cv_url,
             phone: data.phone,
             workplace: data.workplace,
             email: data.contact_email,
@@ -434,6 +440,8 @@ export const dataService = {
         if (consultant.phone !== undefined) updates.phone = consultant.phone;
         if (consultant.workplace !== undefined) updates.workplace = consultant.workplace;
         if (consultant.imageUrl !== undefined) updates.image_url = consultant.imageUrl;
+        if (consultant.cv !== undefined) updates.cv = consultant.cv;
+        if (consultant.cv_url !== undefined) updates.cv_url = consultant.cv_url;
 
         const { error } = await supabase
             .from('consultants')
@@ -731,5 +739,140 @@ export const dataService = {
         this.logActivity('delete', 'user', id);
     },
 
+
+    // AI Knowledge Base
+    async getAiKnowledgeBase(): Promise<AiKnowledgeBase[]> {
+        const { data, error } = await supabase
+            .from('ai_knowledge_base')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching AI knowledge base:', error);
+            return [];
+        }
+
+        return (data || []).map((item: any) => ({
+            id: item.id,
+            categoryId: item.category_id,
+            categoryNameTh: item.category_name_th,
+            terms: item.terms || [],
+            response: item.response,
+            isActive: item.is_active,
+        }));
+    },
+
+    async createAiKnowledgeBase(kb: Omit<AiKnowledgeBase, 'id'>): Promise<AiKnowledgeBase | null> {
+        const { data, error } = await supabase
+            .from('ai_knowledge_base')
+            .insert([{
+                category_id: kb.categoryId,
+                category_name_th: kb.categoryNameTh,
+                terms: kb.terms,
+                response: kb.response,
+                is_active: kb.isActive
+            }])
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        const result = {
+            id: data.id,
+            categoryId: data.category_id,
+            categoryNameTh: data.category_name_th,
+            terms: data.terms,
+            response: data.response,
+            isActive: data.is_active
+        };
+        this.logActivity('create', 'ai_knowledge_base', data.id, result.categoryNameTh);
+        return result;
+    },
+
+    async updateAiKnowledgeBase(id: string, kb: Partial<AiKnowledgeBase>): Promise<void> {
+        const updates: any = {};
+        if (kb.categoryId !== undefined) updates.category_id = kb.categoryId;
+        if (kb.categoryNameTh !== undefined) updates.category_name_th = kb.categoryNameTh;
+        if (kb.terms !== undefined) updates.terms = kb.terms;
+        if (kb.response !== undefined) updates.response = kb.response;
+        if (kb.isActive !== undefined) updates.is_active = kb.isActive;
+
+        updates.updated_at = new Date().toISOString();
+
+        const { error } = await supabase
+            .from('ai_knowledge_base')
+            .update(updates)
+            .eq('id', id);
+
+        if (error) throw error;
+        this.logActivity('update', 'ai_knowledge_base', id, kb.categoryNameTh);
+    },
+
+    async deleteAiKnowledgeBase(id: string): Promise<void> {
+        const { error } = await supabase
+            .from('ai_knowledge_base')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        this.logActivity('delete', 'ai_knowledge_base', id);
+    },
+
+    // Semantic AI Link
+    async analyzeWithGemini(prompt: string): Promise<{ analysis: string, keywords: string[], business_stage: string }> {
+        const apiKey = import.meta.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            console.warn('Missing Gemini API Key in .env.local');
+            throw new Error('API_KEY_MISSING');
+        }
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ text: prompt }]
+                    }],
+                    generationConfig: {
+                        responseMimeType: "application/json"
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                if (response.status === 429) {
+                    throw new Error('RATE_LIMIT');
+                }
+                const errorData = await response.json();
+                console.error('API responded with error:', errorData);
+                throw new Error('API_ERROR');
+            }
+
+            const data = await response.json();
+            const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (!responseText) {
+                throw new Error('INVALID_RESPONSE');
+            }
+
+            try {
+                return JSON.parse(responseText);
+            } catch (e) {
+                console.error("Failed to parse Gemini JSON:", e);
+                return { analysis: responseText, keywords: [], business_stage: "startup" };
+            }
+        } catch (error: any) {
+            if (error.message === 'RATE_LIMIT' || error.message === 'API_KEY_MISSING' || error.message === 'API_ERROR' || error.message === 'INVALID_RESPONSE') {
+                throw error; // Re-throw recognized errors
+            }
+            console.error('Failed to connect to Gemini API:', error);
+            throw new Error('NETWORK_ERROR');
+        }
+    }
 
 };
