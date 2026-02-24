@@ -695,12 +695,18 @@ export const dataService = {
     },
 
     async updateProfile(id: string, updates: any): Promise<void> {
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('profiles')
             .update(updates)
-            .eq('id', id);
+            .eq('id', id)
+            .select()
+            .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Update profile error:', error);
+            throw error;
+        }
+        if (!data) throw new Error('No data returned. Check RLS or if user exists.');
         this.logActivity('update', 'user', id, updates.username || updates.email);
     },
 
