@@ -21,7 +21,7 @@ const CardView = ({ data, userRole, onView, onEdit, onDelete }: { data: Entrepre
           <div className="flex items-start mb-4">
             <div className="bg-white/80 p-3 rounded-lg mr-4 shrink-0 shadow-sm"><BuildingIcon className="w-6 h-6 text-orange-600" /></div>
             <div>
-              <h3 className="text-xl font-medium font-title text-slate-900 leading-tight">{ent.businessName}</h3>
+              <h3 className="text-base font-medium font-title text-slate-900 leading-tight">{ent.businessName}</h3>
               <p className="text-base text-slate-500 font-body">{ent.businessCategory}</p>
             </div>
           </div>
@@ -75,9 +75,7 @@ const ListView = ({ data, userRole, onView, onEdit, onDelete }: { data: Entrepre
       <table className="min-w-full divide-y divide-slate-200 mobile-card-table">
         <thead className="bg-slate-50">
           <tr>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อสถานประกอบการ</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ประเภท</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">หมวดธุรกิจ</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title w-1/2">ชื่อสถานประกอบการ</th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ผู้ติดต่อ</th>
             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">จัดการ</th>
           </tr>
@@ -87,12 +85,6 @@ const ListView = ({ data, userRole, onView, onEdit, onDelete }: { data: Entrepre
             <tr key={ent.id} onClick={() => onView(ent)} className="hover:bg-slate-50 transition-colors cursor-pointer">
               <td data-label="ชื่อธุรกิจ" className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm font-medium text-slate-900">{ent.businessName}</div>
-              </td>
-              <td data-label="ประเภท" className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-slate-500">{ent.establishmentType}</div>
-              </td>
-              <td data-label="หมวดธุรกิจ" className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-slate-500">{ent.businessCategory}</div>
               </td>
               <td data-label="ผู้ติดต่อ" className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm text-slate-900">{ent.name}</div>

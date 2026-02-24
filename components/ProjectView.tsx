@@ -647,15 +647,15 @@ const ProjectView: React.FC = () => { // Removed props
       {filteredProjects.length > 0 ? (
         <>
           {displayMode === 'card' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {paginatedProjects.map(proj => {
                 return (
                   <div key={proj.id} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group flex flex-col">
                     <div className="p-6 relative z-10 flex flex-col h-full">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-xl font-medium font-title text-slate-800 line-clamp-1" title={proj.name}>{proj.name}</h3>
-                        <span className={`flex-shrink-0 px-3 py-1 text-xs font-semibold rounded-full ${getStatusClass(proj.status)}`}>{statusLabel(proj.status)}</span>
+                      <div className="flex justify-end mb-2">
+                        <span className={`flex-shrink-0 px-3 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${getStatusClass(proj.status)}`}>{statusLabel(proj.status)}</span>
                       </div>
+                      <h3 className="text-base font-medium font-title text-slate-800 mb-3" title={proj.name}>{proj.name}</h3>
 
                       <div className="space-y-2 mb-4 flex-grow">
                         <div className="text-sm">
@@ -731,8 +731,6 @@ const ProjectView: React.FC = () => { // Removed props
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ปีงบ</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">สถานะ</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">หมวดหมู่</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ผู้ประกอบการ</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ทีมงาน</th>
                       <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">จัดการ</th>
                     </tr>
                   </thead>
@@ -752,15 +750,6 @@ const ProjectView: React.FC = () => { // Removed props
                         </td>
                         <td data-label="หมวดหมู่" className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-slate-500">{PROJECT_CATEGORIES.find(c => c.key === proj.category)?.label || proj.category}</div>
-                        </td>
-                        <td data-label="ผู้ประกอบการ" className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-slate-900">{proj.entrepreneur}</div>
-                        </td>
-                        <td data-label="ทีมงาน" className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-xs text-slate-500">
-                            <div><span className="font-semibold">หน:</span> {proj.projectLeader}</div>
-                            {proj.coProjectLeader && <div><span className="font-semibold">ร่วม:</span> {proj.coProjectLeader}</div>}
-                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end gap-3">

@@ -409,7 +409,7 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
                                     <div key={project.id} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group flex flex-col">
                                         <div className="p-6 relative z-10 flex flex-col h-full">
                                             <div className="flex justify-between items-start mb-2">
-                                                <h3 className="text-xl font-medium font-title text-slate-800 line-clamp-1" title={project.name}>{project.name}</h3>
+                                                <h3 className="text-base font-medium font-title text-slate-800" title={project.name}>{project.name.length > 100 ? `${project.name.substring(0, 100)}...` : project.name}</h3>
                                                 <span className={`flex-shrink-0 px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(project.status)}`}>
                                                     {getStatusLabel(project.status)}
                                                 </span>
@@ -455,13 +455,10 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
                                     <table className="min-w-full divide-y divide-slate-200 mobile-card-table">
                                         <thead className="bg-slate-50">
                                             <tr>
-                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อโครงการ</th>
-                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">สถานะ</th>
-                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ผู้ประกอบการ</th>
-                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">หมวดหมู่</th>
-                                                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">งบประมาณ</th>
-                                                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ปีงบประมาณ</th>
-                                                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider font-title">การจัดการ</th>
+                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title w-1/2">ชื่อโครงการ</th>
+                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title whitespace-nowrap">สถานะ</th>
+                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title whitespace-nowrap">ผู้ประกอบการ</th>
+                                                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider font-title whitespace-nowrap">การจัดการ</th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-slate-200">
@@ -484,18 +481,6 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
                                                     </td>
                                                     <td data-label="ผู้ประกอบการ" className="px-6 py-4 whitespace-nowrap">
                                                         <span className="text-sm text-slate-600">{project.entrepreneur}</span>
-                                                    </td>
-                                                    <td data-label="หมวดหมู่" className="px-6 py-4 whitespace-nowrap">
-                                                        <span className="text-sm text-slate-600">{getCategoryLabel(project.category)}</span>
-                                                    </td>
-                                                    <td data-label="งบประมาณ" className="px-6 py-4 whitespace-nowrap text-right">
-                                                        <span className="text-sm font-medium text-slate-900">{project.budget.toLocaleString()} บาท</span>
-                                                    </td>
-                                                    <td data-label="ปีงบประมาณ" className="px-6 py-4 whitespace-nowrap text-center">
-                                                        <span className="inline-flex items-center gap-1 text-sm text-slate-600">
-                                                            <CalendarIcon className="w-4 h-4" />
-                                                            {project.fiscalYear || '-'}
-                                                        </span>
                                                     </td>
                                                     <td data-label="การจัดการ" className="px-6 py-4 whitespace-nowrap text-center">
                                                         <button
