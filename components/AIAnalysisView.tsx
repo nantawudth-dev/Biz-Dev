@@ -23,6 +23,7 @@ const AIAnalysisView: React.FC = () => { // Removed props
     const [analysisResult, setAnalysisResult] = useState<string | null>(null);
     const [recommendedConsultants, setRecommendedConsultants] = useState<{ consultant: Consultant, score: number, reasons: string[] }[]>([]);
     const [recommendedCourses, setRecommendedCourses] = useState<Course[]>([]);
+    const [analysisMode, setAnalysisMode] = useState<'llm' | 'knowledge_base'>('knowledge_base');
 
     // Fetch data using DataContext on mount
     useEffect(() => {
@@ -70,7 +71,8 @@ const AIAnalysisView: React.FC = () => { // Removed props
         let llmStage: string = '';
 
         try {
-            const prompt = `ในฐานะผู้เชี่ยวชาญด้านที่ปรึกษาธุรกิจ กรุณาวิเคราะห์ปัญหาและให้คำแนะนำเบื้องต้นที่นำไปปฏิบัติได้จริง (Actionable Advice) สำหรับธุรกิจดังต่อไปนี้:
+            if (analysisMode === 'llm') {
+                const prompt = `ในฐานะผู้เชี่ยวชาญด้านที่ปรึกษาธุรกิจ กรุณาวิเคราะห์ปัญหาและให้คำแนะนำเบื้องต้นที่นำไปปฏิบัติได้จริง (Actionable Advice) สำหรับธุรกิจดังต่อไปนี้:
 ชื่อบริษัท: ${ent?.businessName || 'ไม่ระบุ'}
 ประเภทธุรกิจ: ${ent?.businessCategory || 'ไม่ระบุ'}
 ปัญหาที่พบ: ${problemDescription}
@@ -82,18 +84,27 @@ const AIAnalysisView: React.FC = () => { // Removed props
   "business_stage": "startup, sme, หรือ enterprise"
 }`;
 
-            const result = await dataService.analyzeWithGemini(prompt);
-            setAnalysisResult(result.analysis);
-            llmKeywords = result.keywords || [];
-            llmStage = result.business_stage || '';
-        } catch (error: any) {
-            console.error('LLM Analysis Error:', error);
-            if (error.message === 'RATE_LIMIT') {
-                showNotification('ระบบวิเคราะห์ AI มีผู้ใช้งานจำนวนมาก กรุณารอสักครู่ (ประมาณ 1 นาที) แล้วลองใหม่อีกครั้ง', 'warning');
-            } else if (error.message === 'API_KEY_MISSING') {
-                showNotification('ตั้งค่า GEMINI_API_KEY ไม่สมบูรณ์ กำลังสลับไปใช้การวิเคราะห์แบบพื้นฐานแทน', 'warning');
+                const result = await dataService.analyzeWithGemini(prompt);
+                setAnalysisResult(result.analysis);
+                llmKeywords = result.keywords || [];
+                llmStage = result.business_stage || '';
             } else {
-                showNotification('เกิดข้อผิดพลาดในการเชื่อมต่อ AI กำลังสลับไปใช้การวิเคราะห์แบบพื้นฐานแทน', 'error');
+                // Dynamic Knowledge Base mode
+                const result = generateAnalysis(problemDescription);
+                setAnalysisResult(result);
+            }
+        } catch (error: any) {
+            console.error('Analysis Error:', error);
+            if (analysisMode === 'llm') {
+                if (error.message === 'RATE_LIMIT') {
+                    showNotification('ระบบวิเคราะห์ AI มีผู้ใช้งานจำนวนมาก กรุณารอสักครู่ (ประมาณ 1 นาที) แล้วลองใหม่อีกครั้ง', 'warning');
+                } else if (error.message === 'API_KEY_MISSING') {
+                    showNotification('ตั้งค่า GEMINI_API_KEY ไม่สมบูรณ์ กำลังสลับไปใช้การวิเคราะห์แบบ Dynamic Knowledge Base แทน', 'warning');
+                } else {
+                    showNotification('เกิดข้อผิดพลาดในการเชื่อมต่อ AI กำลังสลับไปใช้การวิเคราะห์แบบ Dynamic Knowledge Base แทน', 'error');
+                }
+            } else {
+                showNotification('เกิดข้อผิดพลาดในการวิเคราะห์ข้อมูล', 'error');
             }
 
             // Fallback to Rule-based algorithm
@@ -414,6 +425,40 @@ const AIAnalysisView: React.FC = () => { // Removed props
                                     placeholder="ระบุปัญหาที่ต้องการปรึกษา เช่น ยอดขายตก, ต้องการลดต้นทุนการผลิต, ขาดสภาพคล่องทางการเงิน..."
                                     className="w-full h-40 px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">รูปแบบการวิเคราะห์ (Analysis Mode)</label>
+                                <div className="space-y-3">
+                                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${analysisMode === 'knowledge_base' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                                        <input
+                                            type="radio"
+                                            name="analysisMode"
+                                            value="knowledge_base"
+                                            checked={analysisMode === 'knowledge_base'}
+                                            onChange={() => setAnalysisMode('knowledge_base')}
+                                            className="mt-1 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <div>
+                                            <span className="block text-sm font-semibold text-slate-800">Dynamic Knowledge Base</span>
+                                            <span className="block text-xs text-slate-500 mt-0.5">วิเคราะห์จากฐานข้อมูลความรู้ระบบ (รวดเร็วและประหยัดการใช้ API)</span>
+                                        </div>
+                                    </label>
+                                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${analysisMode === 'llm' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                                        <input
+                                            type="radio"
+                                            name="analysisMode"
+                                            value="llm"
+                                            checked={analysisMode === 'llm'}
+                                            onChange={() => setAnalysisMode('llm')}
+                                            className="mt-1 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <div>
+                                            <span className="block text-sm font-semibold text-slate-800">Semantic LLM Integration</span>
+                                            <span className="block text-xs text-slate-500 mt-0.5">วิเคราะห์เชิงลึกด้วย AI (Gemini) เหมาะสำหรับปัญหาที่มีความซับซ้อน</span>
+                                        </div>
+                                    </label>
+                                </div>
                             </div>
 
                             <button
