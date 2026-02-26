@@ -7,6 +7,7 @@ import { dataService } from '../services/dataService';
 import { useData } from '../contexts/DataContext';
 import Pagination from './Pagination';
 import DashboardCharts from './DashboardCharts';
+import ProjectDetails from './ProjectDetails';
 
 interface DashboardViewProps { }
 
@@ -167,352 +168,251 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
         );
     }
 
-    // If a project is selected, show the detail view
-    if (selectedProject) {
-        return (
-            <div className="space-y-6 animate-fade-in">
-                {/* Header with Back Button */}
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={handleBackToList}
-                        className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
-                    >
-                        <ArrowLeftIcon className="w-6 h-6" />
-                    </button>
-                    <div className="flex items-center gap-3">
-                        <BriefcaseIcon className="w-8 h-8 text-emerald-600" />
-                        <h2 className="text-3xl font-medium font-title text-slate-900">{selectedProject.name}</h2>
+
+    return (
+        <>
+            <div className="space-y-8 animate-fade-in">
+                {/* Completed Projects Header & Filters */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+                    <div className="w-full md:w-auto md:flex-1 relative">
+                        <input
+                            type="text"
+                            placeholder="ค้นหาชื่อโครงการ หรือผู้ประกอบการ..."
+                            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <MagnifyingGlassIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    </div>
+
+                    <div className="w-full md:w-auto flex flex-wrap items-center justify-end gap-2">
+                        {/* Status Filter */}
+                        <div className="relative">
+                            <select
+                                className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors appearance-none font-semibold text-sm cursor-pointer"
+                                value={selectedStatus}
+                                onChange={(e) => setSelectedStatus(e.target.value)}
+                            >
+                                <option value="All">ทุกสถานะ</option>
+                                <option value="Completed">เสร็จสิ้น</option>
+                                <option value="In Progress">กำลังดำเนินการ</option>
+                                <option value="Planned">แผนงาน</option>
+                            </select>
+                            <CheckCircleIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
+                        {/* Year Filter */}
+                        <div className="relative">
+                            <select
+                                className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors appearance-none font-semibold text-sm cursor-pointer"
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(e.target.value)}
+                            >
+                                <option value="All">ปีงบประมาณ</option>
+                                {fiscalYears.map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
+                            <CalendarIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
+
+                        {/* Category Filter */}
+                        <div className="relative">
+                            <select
+                                className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors appearance-none font-semibold text-sm cursor-pointer"
+                                value={selectedCategory}
+                                onChange={(e) => setSelectedCategory(e.target.value)}
+                            >
+                                <option value="All">หมวดหมู่ทั้งหมด</option>
+                                {projectCategories.map(cat => (
+                                    <option key={cat} value={cat}>{getCategoryLabel(cat)}</option>
+                                ))}
+                            </select>
+                            <FunnelIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
+
+                        {/* View Toggle */}
+                        <div className="hidden md:flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                            <button
+                                onClick={() => setDisplayMode('card')}
+                                className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors ${displayMode === 'card' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-100'}`}
+                                aria-pressed={displayMode === 'card'}
+                                title="Card View"
+                            >
+                                <Squares2X2Icon className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={() => setDisplayMode('list')}
+                                className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors ${displayMode === 'list' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-100'}`}
+                                aria-pressed={displayMode === 'list'}
+                                title="List View"
+                            >
+                                <ListBulletIcon className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                {/* Project Details Card */}
-                <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-8 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ชื่อโครงการ</label>
-                            <p className="text-lg font-medium text-slate-900 mt-1">{selectedProject.name}</p>
-                        </div>
-                        <div>
-                            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">สถานะ</label>
-                            <div className="mt-1">
-                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(selectedProject.status)}`}>
-                                    {getStatusLabel(selectedProject.status)}
-                                </span>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">หมวดหมู่</label>
-                            <p className="text-lg font-medium text-slate-900 mt-1">{getCategoryLabel(selectedProject.category)}</p>
-                        </div>
-                        <div>
-                            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ผู้ประกอบการ</label>
-                            <p className="text-lg font-medium text-slate-900 mt-1">{selectedProject.entrepreneur}</p>
-                        </div>
-                        <div>
-                            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">งบประมาณ</label>
-                            <p className="text-lg font-medium text-slate-900 mt-1">{selectedProject.budget.toLocaleString()} บาท</p>
-                        </div>
-                        {selectedProject.fiscalYear && (
-                            <div>
-                                <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ปีงบประมาณ</label>
-                                <p className="text-lg font-medium text-slate-900 mt-1">{selectedProject.fiscalYear}</p>
-                            </div>
-                        )}
-                    </div>
+                {/* Stat Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <StatCard
+                        icon={<BuildingIcon />}
+                        label="ผู้ประกอบการ"
+                        value={entrepreneurs.length}
+                        gradient="bg-gradient-to-br from-blue-500 to-blue-700"
+                    />
+                    <StatCard
+                        icon={<BriefcaseIcon />}
+                        label="โครงการทั้งหมด"
+                        value={projects.length}
+                        gradient="bg-gradient-to-br from-emerald-500 to-teal-600"
+                    />
+                    <StatCard
+                        icon={<BookOpenIcon />}
+                        label="หลักสูตร"
+                        value={courses.length}
+                        gradient="bg-gradient-to-br from-purple-500 to-indigo-600"
+                    />
+                    <StatCard
+                        icon={<UserGroupIcon />}
+                        label="ผู้เชี่ยวชาญ"
+                        value={consultants.length}
+                        gradient="bg-gradient-to-br from-orange-500 to-red-600"
+                    />
+                </div>
 
-                    {selectedProject.description && (
-                        <div>
-                            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">รายละเอียด</label>
-                            <p className="text-base text-slate-700 mt-2 leading-relaxed">{selectedProject.description}</p>
-                        </div>
-                    )}
+                {/* Completed Projects Section */}
+                <div className="space-y-6">
 
-                    {selectedProject.outcome && (
-                        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-6">
-                            <label className="text-sm font-semibold text-emerald-700 uppercase tracking-wide flex items-center gap-2">
-                                <CheckCircleIcon className="w-5 h-5" />
-                                ผลลัพธ์โครงการ
-                            </label>
-                            <p className="text-base text-slate-800 mt-3 leading-relaxed">{selectedProject.outcome}</p>
-                        </div>
-                    )}
 
-                    {/* Team Information */}
-                    <div className="border-t border-slate-200 pt-6">
-                        <h3 className="text-lg font-semibold text-slate-800 mb-4">ทีมงาน</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="flex items-start gap-3">
-                                <UserCircleIcon className="w-6 h-6 text-blue-600 mt-0.5" />
-                                <div>
-                                    <label className="text-sm font-semibold text-slate-500">หัวหน้าโครงการ</label>
-                                    <p className="text-base font-medium text-slate-900">{selectedProject.projectLeader}</p>
+                    {/* System Graphs */}
+                    <DashboardCharts projects={filteredProjects} />
+
+
+
+
+                    {filteredProjects.length > 0 ? (
+                        <>
+                            {displayMode === 'card' ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                                    {paginatedProjects.map(project => (
+                                        <div key={project.id} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group flex flex-col">
+                                            <div className="p-6 relative z-10 flex flex-col h-full">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h3 className="text-base font-medium font-title text-slate-800" title={project.name}>{project.name.length > 100 ? `${project.name.substring(0, 100)}...` : project.name}</h3>
+                                                    <span className={`flex-shrink-0 px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(project.status)}`}>
+                                                        {getStatusLabel(project.status)}
+                                                    </span>
+                                                </div>
+
+                                                <div className="space-y-2 mb-4 flex-grow">
+                                                    <div className="text-sm">
+                                                        <span className="text-slate-500">ผู้ประกอบการ/แหล่งทุน:</span>
+                                                        <span className="ml-2 font-medium text-slate-800">{project.entrepreneur}</span>
+                                                    </div>
+                                                    <div className="text-sm">
+                                                        <span className="text-slate-500">ปีงบประมาณ:</span>
+                                                        <span className="ml-2 font-medium text-slate-800">{project.fiscalYear || '-'}</span>
+                                                    </div>
+                                                    <div className="text-sm">
+                                                        <span className="text-slate-500">หมวดหมู่:</span>
+                                                        <span className="ml-2 font-medium text-slate-800">{getCategoryLabel(project.category)}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-200/60">
+                                                    <div className="text-sm text-slate-500">
+                                                        งบประมาณ: <span className="font-semibold text-slate-800">{project.budget ? project.budget.toLocaleString() : '0'}</span> บาท
+                                                    </div>
+                                                </div>
+
+                                                <div className="border-t border-slate-200/60 pt-4 mt-auto">
+                                                    <button
+                                                        onClick={() => setSelectedProject(project)}
+                                                        className="w-full py-2 bg-white border border-emerald-200 text-emerald-600 font-semibold rounded-lg hover:bg-emerald-50 transition-all shadow-sm flex items-center justify-center gap-2"
+                                                    >
+                                                        <EyeIcon className="w-4 h-4" />
+                                                        ดูรายละเอียด
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                            </div>
-                            {selectedProject.coProjectLeader && (
-                                <div className="flex items-start gap-3">
-                                    <UserCircleIcon className="w-6 h-6 text-slate-600 mt-0.5" />
-                                    <div>
-                                        <label className="text-sm font-semibold text-slate-500">ผู้ร่วมดำเนินการ</label>
-                                        <p className="text-base font-medium text-slate-900">{selectedProject.coProjectLeader}</p>
+                            ) : (
+                                <div className="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+                                    <div className="overflow-x-auto mobile-card-wrapper">
+                                        <table className="min-w-full divide-y divide-slate-200 mobile-card-table">
+                                            <thead className="bg-slate-50">
+                                                <tr>
+                                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อโครงการ</th>
+                                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title whitespace-nowrap">สถานะ</th>
+                                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title whitespace-nowrap">ผู้ประกอบการ/แหล่งทุน</th>
+                                                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider font-title whitespace-nowrap">การจัดการ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-slate-200">
+                                                {paginatedProjects.map((project) => (
+                                                    <tr
+                                                        key={project.id}
+                                                        className="hover:bg-slate-50 transition-colors cursor-pointer"
+                                                        onClick={() => setSelectedProject(project)}
+                                                    >
+                                                        <td data-label="ชื่อโครงการ" className="px-6 py-4">
+                                                            <div className="flex items-start gap-2 max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl">
+                                                                <BriefcaseIcon className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                                                                <span className="text-sm font-medium text-slate-900 break-words line-clamp-3 md:line-clamp-none">{project.name}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td data-label="สถานะ" className="px-6 py-4 whitespace-nowrap">
+                                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(project.status)}`}>
+                                                                {getStatusLabel(project.status)}
+                                                            </span>
+                                                        </td>
+                                                        <td data-label="ผู้ประกอบการ" className="px-6 py-4 whitespace-nowrap">
+                                                            <span className="text-sm text-slate-600">{project.entrepreneur}</span>
+                                                        </td>
+                                                        <td data-label="การจัดการ" className="px-6 py-4 whitespace-nowrap text-center">
+                                                            <button
+                                                                onClick={() => setSelectedProject(project)}
+                                                                className="inline-flex items-center justify-center p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                title="ดูรายละเอียด"
+                                                            >
+                                                                <EyeIcon className="w-5 h-5" />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             )}
-                        </div>
-                    </div>
-
-                    {selectedProject.completeReportLink && (
-                        <div className="border-t border-slate-200 pt-6">
-                            <a
-                                href={selectedProject.completeReportLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-opacity font-semibold"
-                            >
-                                <BookOpenIcon className="w-5 h-5" />
-                                ดูรายงานฉบับสมบูรณ์
-                            </a>
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={filteredProjects.length}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                                onItemsPerPageChange={(e) => setItemsPerPage(Number(e.target.value))}
+                            />
+                        </>
+                    ) : (
+                        <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-8 text-center">
+                            <p className="text-slate-500">ไม่พบโครงการที่ตรงกับเงื่อนไข</p>
                         </div>
                     )}
                 </div>
             </div>
-        );
-    }
 
-    return (
-        <div className="space-y-8 animate-fade-in">
-            {/* Completed Projects Header & Filters */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
-                <div className="w-full md:w-auto md:flex-1 relative">
-                    <input
-                        type="text"
-                        placeholder="ค้นหาชื่อโครงการ หรือผู้ประกอบการ..."
-                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <MagnifyingGlassIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                </div>
-
-                <div className="w-full md:w-auto flex flex-wrap items-center justify-end gap-2">
-                    {/* Status Filter */}
-                    <div className="relative">
-                        <select
-                            className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors appearance-none font-semibold text-sm cursor-pointer"
-                            value={selectedStatus}
-                            onChange={(e) => setSelectedStatus(e.target.value)}
-                        >
-                            <option value="All">ทุกสถานะ</option>
-                            <option value="Completed">เสร็จสิ้น</option>
-                            <option value="In Progress">กำลังดำเนินการ</option>
-                            <option value="Planned">แผนงาน</option>
-                        </select>
-                        <CheckCircleIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
-                    {/* Year Filter */}
-                    <div className="relative">
-                        <select
-                            className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors appearance-none font-semibold text-sm cursor-pointer"
-                            value={selectedYear}
-                            onChange={(e) => setSelectedYear(e.target.value)}
-                        >
-                            <option value="All">ปีงบประมาณ</option>
-                            {fiscalYears.map(year => (
-                                <option key={year} value={year}>{year}</option>
-                            ))}
-                        </select>
-                        <CalendarIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
-
-                    {/* Category Filter */}
-                    <div className="relative">
-                        <select
-                            className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors appearance-none font-semibold text-sm cursor-pointer"
-                            value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}
-                        >
-                            <option value="All">หมวดหมู่ทั้งหมด</option>
-                            {projectCategories.map(cat => (
-                                <option key={cat} value={cat}>{getCategoryLabel(cat)}</option>
-                            ))}
-                        </select>
-                        <FunnelIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
-
-                    {/* View Toggle */}
-                    <div className="hidden md:flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-                        <button
-                            onClick={() => setDisplayMode('card')}
-                            className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors ${displayMode === 'card' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-100'}`}
-                            aria-pressed={displayMode === 'card'}
-                            title="Card View"
-                        >
-                            <Squares2X2Icon className="w-5 h-5" />
-                        </button>
-                        <button
-                            onClick={() => setDisplayMode('list')}
-                            className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors ${displayMode === 'list' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-100'}`}
-                            aria-pressed={displayMode === 'list'}
-                            title="List View"
-                        >
-                            <ListBulletIcon className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard
-                    icon={<BuildingIcon />}
-                    label="ผู้ประกอบการ"
-                    value={entrepreneurs.length}
-                    gradient="bg-gradient-to-br from-blue-500 to-blue-700"
-                />
-                <StatCard
-                    icon={<BriefcaseIcon />}
-                    label="โครงการทั้งหมด"
-                    value={projects.length}
-                    gradient="bg-gradient-to-br from-emerald-500 to-teal-600"
-                />
-                <StatCard
-                    icon={<BookOpenIcon />}
-                    label="หลักสูตร"
-                    value={courses.length}
-                    gradient="bg-gradient-to-br from-purple-500 to-indigo-600"
-                />
-                <StatCard
-                    icon={<UserGroupIcon />}
-                    label="ผู้เชี่ยวชาญ"
-                    value={consultants.length}
-                    gradient="bg-gradient-to-br from-orange-500 to-red-600"
-                />
-            </div>
-
-            {/* Completed Projects Section */}
-            <div className="space-y-6">
-
-
-                {/* System Graphs */}
-                <DashboardCharts projects={filteredProjects} />
-
-
-
-
-                {filteredProjects.length > 0 ? (
-                    <>
-                        {displayMode === 'card' ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                                {paginatedProjects.map(project => (
-                                    <div key={project.id} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group flex flex-col">
-                                        <div className="p-6 relative z-10 flex flex-col h-full">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <h3 className="text-base font-medium font-title text-slate-800" title={project.name}>{project.name.length > 100 ? `${project.name.substring(0, 100)}...` : project.name}</h3>
-                                                <span className={`flex-shrink-0 px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(project.status)}`}>
-                                                    {getStatusLabel(project.status)}
-                                                </span>
-                                            </div>
-
-                                            <div className="space-y-2 mb-4 flex-grow">
-                                                <div className="text-sm">
-                                                    <span className="text-slate-500">ผู้ประกอบการ:</span>
-                                                    <span className="ml-2 font-medium text-slate-800">{project.entrepreneur}</span>
-                                                </div>
-                                                <div className="text-sm">
-                                                    <span className="text-slate-500">ปีงบประมาณ:</span>
-                                                    <span className="ml-2 font-medium text-slate-800">{project.fiscalYear || '-'}</span>
-                                                </div>
-                                                <div className="text-sm">
-                                                    <span className="text-slate-500">หมวดหมู่:</span>
-                                                    <span className="ml-2 font-medium text-slate-800">{getCategoryLabel(project.category)}</span>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-200/60">
-                                                <div className="text-sm text-slate-500">
-                                                    งบประมาณ: <span className="font-semibold text-slate-800">{project.budget ? project.budget.toLocaleString() : '0'}</span> บาท
-                                                </div>
-                                            </div>
-
-                                            <div className="border-t border-slate-200/60 pt-4 mt-auto">
-                                                <button
-                                                    onClick={() => setSelectedProject(project)}
-                                                    className="w-full py-2 bg-white border border-emerald-200 text-emerald-600 font-semibold rounded-lg hover:bg-emerald-50 transition-all shadow-sm flex items-center justify-center gap-2"
-                                                >
-                                                    <EyeIcon className="w-4 h-4" />
-                                                    ดูรายละเอียด
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
-                                <div className="overflow-x-auto mobile-card-wrapper">
-                                    <table className="min-w-full divide-y divide-slate-200 mobile-card-table">
-                                        <thead className="bg-slate-50">
-                                            <tr>
-                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อโครงการ</th>
-                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title whitespace-nowrap">สถานะ</th>
-                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title whitespace-nowrap">ผู้ประกอบการ</th>
-                                                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider font-title whitespace-nowrap">การจัดการ</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-slate-200">
-                                            {paginatedProjects.map((project) => (
-                                                <tr
-                                                    key={project.id}
-                                                    className="hover:bg-slate-50 transition-colors cursor-pointer"
-                                                    onClick={() => setSelectedProject(project)}
-                                                >
-                                                    <td data-label="ชื่อโครงการ" className="px-6 py-4">
-                                                        <div className="flex items-start gap-2 max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl">
-                                                            <BriefcaseIcon className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                                                            <span className="text-sm font-medium text-slate-900 break-words line-clamp-3 md:line-clamp-none">{project.name}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td data-label="สถานะ" className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(project.status)}`}>
-                                                            {getStatusLabel(project.status)}
-                                                        </span>
-                                                    </td>
-                                                    <td data-label="ผู้ประกอบการ" className="px-6 py-4 whitespace-nowrap">
-                                                        <span className="text-sm text-slate-600">{project.entrepreneur}</span>
-                                                    </td>
-                                                    <td data-label="การจัดการ" className="px-6 py-4 whitespace-nowrap text-center">
-                                                        <button
-                                                            onClick={() => setSelectedProject(project)}
-                                                            className="inline-flex items-center justify-center p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                            title="ดูรายละเอียด"
-                                                        >
-                                                            <EyeIcon className="w-5 h-5" />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-                        <Pagination
-                            currentPage={currentPage}
-                            totalItems={filteredProjects.length}
-                            itemsPerPage={itemsPerPage}
-                            onPageChange={setCurrentPage}
-                            onItemsPerPageChange={(e) => setItemsPerPage(Number(e.target.value))}
-                        />
-                    </>
-                ) : (
-                    <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-8 text-center">
-                        <p className="text-slate-500">ไม่พบโครงการที่ตรงกับเงื่อนไข</p>
-                    </div>
-                )}
-            </div>
-        </div>
+            <ProjectDetails
+                project={selectedProject}
+                isOpen={!!selectedProject}
+                onClose={handleBackToList}
+                icon={<BriefcaseIcon className="w-7 h-7 text-blue-600" />}
+            />
+        </>
     );
 };
 

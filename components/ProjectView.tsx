@@ -9,6 +9,7 @@ import { useData } from '../contexts/DataContext';
 import Pagination from './Pagination';
 import { PROJECT_CATEGORIES } from '../constants'; // Import constants
 import Modal from './Modal';
+import ProjectDetails from './ProjectDetails';
 
 const emptyProject: Omit<Project, 'id'> = {
   name: '',
@@ -270,7 +271,7 @@ const ProjectView: React.FC = () => { // Removed props
         <h2 className="text-2xl font-medium font-title text-slate-900">{editingProject ? 'แก้ไขโครงการ' : 'เพิ่มโครงการใหม่'}</h2>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-8 max-h-[80vh] overflow-y-auto custom-scrollbar [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-8">
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-1">
             <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อโครงการ</label>
@@ -402,117 +403,15 @@ const ProjectView: React.FC = () => { // Removed props
     </div>
   ) : null;
 
-  // View: Project Details
-  const detailsView = selectedProject ? (
-    <div className="space-y-6">
-      {/* Header with Back Button */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => setSelectedProject(null)}
-          className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
-        >
-          <ArrowLeftIcon className="w-6 h-6" />
-        </button>
-        <div className="flex items-center gap-3">
-          <BriefcaseIcon className="w-8 h-8 text-emerald-600" />
-          <h2 className="text-3xl font-medium font-title text-slate-900">{selectedProject.name}</h2>
-        </div>
-      </div>
-
-      {/* Project Details Card */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-8 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ชื่อโครงการ</label>
-            <p className="text-lg font-medium text-slate-900 mt-1">{selectedProject.name}</p>
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">สถานะ</label>
-            <div className="mt-1">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-sm font-semibold rounded-full ${getStatusClass(selectedProject.status)}`}>
-                {selectedProject.status === 'Completed' && <CheckCircleIcon className="w-4 h-4" />}
-                {statusLabel(selectedProject.status)}
-              </span>
-            </div>
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">หมวดหมู่</label>
-            <p className="text-lg font-medium text-slate-900 mt-1">
-              {PROJECT_CATEGORIES.find(c => c.key === selectedProject.category)?.label || selectedProject.category}
-            </p>
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ผู้ประกอบการ</label>
-            <p className="text-lg font-medium text-slate-900 mt-1">{selectedProject.entrepreneur}</p>
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">งบประมาณ</label>
-            <p className="text-lg font-medium text-slate-900 mt-1">{selectedProject.budget ? selectedProject.budget.toLocaleString() : '0'} บาท</p>
-          </div>
-          {selectedProject.fiscalYear && (
-            <div>
-              <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ปีงบประมาณ</label>
-              <p className="text-lg font-medium text-slate-900 mt-1">{selectedProject.fiscalYear}</p>
-            </div>
-          )}
-        </div>
-
-        {selectedProject.description && (
-          <div>
-            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">รายละเอียด</label>
-            <p className="text-base text-slate-700 mt-2 leading-relaxed whitespace-pre-wrap">{selectedProject.description}</p>
-          </div>
-        )}
-
-        {selectedProject.outcome && (
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-6">
-            <label className="text-sm font-semibold text-emerald-700 uppercase tracking-wide flex items-center gap-2">
-              <CheckCircleIcon className="w-5 h-5" />
-              ผลสัมฤทธิ์โครงการ
-            </label>
-            <p className="text-base text-slate-800 mt-3 leading-relaxed">{selectedProject.outcome}</p>
-          </div>
-        )}
-
-        {/* Team Information */}
-        <div className="border-t border-slate-200 pt-6">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">ทีมงาน</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-start gap-3">
-              <UserCircleIcon className="w-6 h-6 text-blue-600 mt-0.5" />
-              <div>
-                <label className="text-sm font-semibold text-slate-500">หัวหน้าโครงการ</label>
-                <p className="text-base font-medium text-slate-900">{selectedProject.projectLeader}</p>
-              </div>
-            </div>
-            {selectedProject.coProjectLeader && (
-              <div className="flex items-start gap-3">
-                <UserCircleIcon className="w-6 h-6 text-slate-600 mt-0.5" />
-                <div>
-                  <label className="text-sm font-semibold text-slate-500">ผู้ร่วมดำเนินการ</label>
-                  <p className="text-base font-medium text-slate-900">{selectedProject.coProjectLeader}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {selectedProject.completeReportLink && (
-          <div className="border-t border-slate-200 pt-6">
-            <a
-              href={selectedProject.completeReportLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-opacity font-semibold"
-            >
-              <BookOpenIcon className="w-5 h-5" />
-              ดูรายงานฉบับสมบูรณ์
-            </a>
-          </div>
-        )}
-      </div>
-    </div>
-  ) : null;
+  // View: Project Details (Modal)
+  const detailsView = (
+    <ProjectDetails
+      project={selectedProject}
+      isOpen={!!selectedProject}
+      onClose={() => setSelectedProject(null)}
+      icon={<BriefcaseIcon className="w-7 h-7 text-blue-600" />}
+    />
+  );
 
   // View: Project List
   const listView = (
@@ -728,7 +627,7 @@ const ProjectView: React.FC = () => { // Removed props
                   <thead className="bg-slate-50">
                     <tr>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อโครงการ</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ปีงบ</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ปีงบประมาณ</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">สถานะ</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">หมวดหมู่</th>
                       <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider font-title">จัดการ</th>
@@ -827,8 +726,8 @@ const ProjectView: React.FC = () => { // Removed props
   return (
     <div className="w-full animate-fade-in">
       {isFormOpen && formView}
-      {selectedProject && detailsView}
-      {!isFormOpen && !selectedProject && listView}
+      {!isFormOpen && listView}
+      {detailsView}
 
       {/* Persistence Modals - Always Rendered */}
       {reportingProject && (

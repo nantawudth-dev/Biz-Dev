@@ -14,7 +14,7 @@ const emptyCourseForm: Omit<Course, 'id'> & { id?: string } = {
 };
 
 const CardView = ({ data, userRole, onView, onEdit, onDelete }: { data: Course[], userRole: Role, onView: (course: Course) => void, onEdit: (course: Course) => void, onDelete: (course: Course) => void }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
     {data.map(course => (
       <div key={course.id} className="bg-white border border-slate-200 rounded-xl shadow-lg hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col group relative overflow-hidden">
         <div className="p-6 flex-grow flex flex-col relative z-10">
@@ -50,7 +50,7 @@ const CardView = ({ data, userRole, onView, onEdit, onDelete }: { data: Course[]
             {course.syllabusLink && (
               <div className="flex items-center gap-2 text-blue-600">
                 <GlobeAltIcon className="w-4 h-4" />
-                <a href={course.syllabusLink} target="_blank" rel="noopener noreferrer" className="truncate max-w-[200px] hover:underline hover:text-blue-800 transition-colors" onClick={(e) => e.stopPropagation()}>ลิงก์หลักสูตร</a>
+                <a href={course.syllabusLink} target="_blank" rel="noopener noreferrer" className="truncate max-w-[200px] hover:underline hover:text-blue-800 transition-colors" onClick={(e) => e.stopPropagation()}>เอกสารหลักสูตร</a>
               </div>
             )}
           </div>
@@ -305,95 +305,81 @@ const CourseView: React.FC = () => { // Removed props
     );
   }
 
-  // View: Add/Edit Form
-  const formView = isFormOpen ? (
-    <div className="max-w-4xl mx-auto animate-fade-in shadow-xl">
-      <div className="flex items-center mb-6">
-        <button
-          onClick={handleBackToList}
-          className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
-        >
-          <ArrowLeftIcon className="w-6 h-6" />
-        </button>
-        <h2 className="text-2xl font-medium font-title text-slate-900">{editingCourse ? 'แก้ไขข้อมูลหลักสูตร' : 'เพิ่มหลักสูตรใหม่'}</h2>
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-8">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อหลักสูตร</label>
-              <input type="text" placeholder="ชื่อหลักสูตร" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
-            </div>
-
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-1">ผู้สอน</label>
-              <input type="text" placeholder="ชื่อผู้สอน / วิทยากร" value={formData.instructor} onChange={e => setFormData({ ...formData, instructor: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
-            </div>
-
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-1">ระยะเวลา</label>
-              <input type="text" placeholder="เช่น 3 วัน, 15 ชั่วโมง" value={formData.duration} onChange={e => setFormData({ ...formData, duration: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-            </div>
-
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
-              <div className="relative">
-                <PhoneIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input type="tel" placeholder="เบอร์โทรศัพท์" value={formData.contactPhone} onChange={e => setFormData({ ...formData, contactPhone: e.target.value })} className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-              </div>
-            </div>
-
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-1">อีเมลติดต่อ</label>
-              <div className="relative">
-                <EnvelopeIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input type="email" placeholder="example@email.com" value={formData.contactEmail} onChange={e => setFormData({ ...formData, contactEmail: e.target.value })} className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-              </div>
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">รายละเอียดหลักสูตร</label>
-              <textarea placeholder="รายละเอียดเนื้อหา, วัตถุประสงค์, กลุ่มเป้าหมาย" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors h-32 font-body" />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">ลิงก์หลักสูตร (URL)</label>
-              <div className="relative">
-                <GlobeAltIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input type="url" placeholder="https://example.com/course-syllabus" value={formData.syllabusLink} onChange={e => setFormData({ ...formData, syllabusLink: e.target.value })} className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-              </div>
-            </div>
-
-          </div>
-
-          <div className="flex justify-end pt-4 gap-3">
-            <button type="button" onClick={handleBackToList} className="bg-gradient-to-r from-orange-400 to-amber-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-colors shadow-md">ยกเลิก</button>
-            <button type="submit" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-colors shadow-md">{editingCourse ? 'บันทึกการแก้ไข' : 'บันทึกหลักสูตร'}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  ) : null;
-
-  // View: Details
-  const detailsView = viewingCourse ? (
-    <div className="max-w-4xl mx-auto animate-fade-in shadow-lg">
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={handleBackToList}
-          className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
-        >
-          <ArrowLeftIcon className="w-6 h-6" />
-        </button>
-        <div className="flex items-center gap-3">
-          <BookOpenIcon className="w-8 h-8 text-emerald-600" />
-          <h2 className="text-3xl font-medium font-title text-slate-900">{viewingCourse.title}</h2>
-        </div>
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-8 space-y-6 font-body">
+  // View: Add/Edit Form (Modal)
+  const formView = (
+    <Modal
+      isOpen={isFormOpen}
+      onClose={handleBackToList}
+      title={editingCourse ? 'แก้ไขข้อมูลหลักสูตร' : 'เพิ่มหลักสูตรใหม่'}
+      icon={<BookOpenIcon className="w-7 h-7 text-blue-600" />}
+      maxWidth="max-w-4xl"
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อหลักสูตร</label>
+            <input type="text" placeholder="ชื่อหลักสูตร" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">ผู้สอน</label>
+            <input type="text" placeholder="ชื่อผู้สอน / วิทยากร" value={formData.instructor} onChange={e => setFormData({ ...formData, instructor: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">ระยะเวลา</label>
+            <input type="text" placeholder="เช่น 3 วัน, 15 ชั่วโมง" value={formData.duration} onChange={e => setFormData({ ...formData, duration: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
+            <div className="relative">
+              <PhoneIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input type="tel" placeholder="เบอร์โทรศัพท์" value={formData.contactPhone} onChange={e => setFormData({ ...formData, contactPhone: e.target.value })} className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">อีเมลติดต่อ</label>
+            <div className="relative">
+              <EnvelopeIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input type="email" placeholder="example@email.com" value={formData.contactEmail} onChange={e => setFormData({ ...formData, contactEmail: e.target.value })} className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1">รายละเอียดหลักสูตร</label>
+            <textarea placeholder="รายละเอียดเนื้อหา, วัตถุประสงค์, กลุ่มเป้าหมาย" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors h-32 font-body" />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1">ลิงก์หลักสูตร (URL)</label>
+            <div className="relative">
+              <GlobeAltIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input type="url" placeholder="https://example.com/course-syllabus" value={formData.syllabusLink} onChange={e => setFormData({ ...formData, syllabusLink: e.target.value })} className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-4 gap-3 border-t border-slate-100">
+          <button type="button" onClick={handleBackToList} className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-lg font-semibold hover:bg-slate-200 transition-colors">ยกเลิก</button>
+          <button type="submit" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-colors shadow-md">{editingCourse ? 'บันทึกการแก้ไข' : 'บันทึกหลักสูตร'}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+
+  // View: Details (Modal)
+  const detailsView = viewingCourse ? (
+    <Modal
+      isOpen={!!viewingCourse}
+      onClose={handleBackToList}
+      title={viewingCourse.title}
+      icon={<BookOpenIcon className="w-7 h-7 text-emerald-600" />}
+      maxWidth="max-w-4xl"
+    >
+      <div className="space-y-6 font-body">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           <div>
             <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ผู้สอน / วิทยากร</label>
             <p className="text-lg font-medium text-slate-900 mt-1">{viewingCourse.instructor}</p>
@@ -417,14 +403,14 @@ const CourseView: React.FC = () => { // Removed props
         </div>
 
         {viewingCourse.description && (
-          <div className="border-t border-slate-200 pt-6">
+          <div className="border-t border-slate-200 pt-5">
             <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">รายละเอียดหลักสูตร</label>
             <p className="text-base text-slate-800 mt-3 leading-relaxed whitespace-pre-wrap">{viewingCourse.description}</p>
           </div>
         )}
 
         {viewingCourse.syllabusLink && (
-          <div className="border-t border-slate-200 pt-6">
+          <div className="border-t border-slate-200 pt-5">
             <a
               href={viewingCourse.syllabusLink}
               target="_blank"
@@ -432,12 +418,12 @@ const CourseView: React.FC = () => { // Removed props
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg hover:opacity-90 transition-opacity font-semibold"
             >
               <BookOpenIcon className="w-5 h-5" />
-              ดูหลักสูตรออนไลน์
+              ดูเอกสารหลักสูตร
             </a>
           </div>
         )}
       </div>
-    </div>
+    </Modal>
   ) : null;
 
   // View: List (Default)
@@ -487,8 +473,6 @@ const CourseView: React.FC = () => { // Removed props
         </div>
       )}
 
-
-
       {/* Quick Menu Card */}
       {(userRole === 'admin' || userRole === 'officer') && (
         <div className="mt-8">
@@ -528,9 +512,9 @@ const CourseView: React.FC = () => { // Removed props
 
   return (
     <div className="w-full animate-fade-in">
-      {isFormOpen && formView}
-      {viewingCourse && detailsView}
-      {!isFormOpen && !viewingCourse && listView}
+      {listView}
+      {formView}
+      {detailsView}
 
       <Modal isOpen={isDeleteModalOpen} onClose={handleCloseDeleteModal} title="ยืนยันการลบ" icon={<ExclamationTriangleIcon className="w-7 h-7 text-red-500" />}>
         {deletingCourse && (

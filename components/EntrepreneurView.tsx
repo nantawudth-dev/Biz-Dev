@@ -275,162 +275,145 @@ const EntrepreneurView: React.FC = () => { // Removed props
     );
   }
 
-  // View: Add/Edit Form
-  const formView = isFormOpen ? (
-    <div className="max-w-4xl mx-auto animate-fade-in shadow-xl">
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={handleBackToList}
-          className="mr-2 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
-        >
-          <ArrowLeftIcon className="w-6 h-6" />
-        </button>
-        <div className="flex items-center gap-3">
-          <BuildingOffice2Icon className="w-8 h-8 text-blue-600" />
-          <h2 className="text-2xl font-medium font-title text-slate-900">{editingEntrepreneur ? 'แก้ไขข้อมูลผู้ประกอบการ' : 'เพิ่มผู้ประกอบการใหม่'}</h2>
+  // View: Add/Edit Form (Modal)
+  const formView = (
+    <Modal
+      isOpen={isFormOpen}
+      onClose={handleBackToList}
+      title={editingEntrepreneur ? 'แก้ไขข้อมูลผู้ประกอบการ' : 'เพิ่มผู้ประกอบการใหม่'}
+      icon={<BuildingOffice2Icon className="w-7 h-7 text-blue-600" />}
+      maxWidth="max-w-4xl"
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1 font-title">ชื่อสถานประกอบการ (ทางการ)</label>
+            <input type="text" placeholder="ชื่อสถานประกอบการ" value={formData.businessName} onChange={e => setFormData({ ...formData, businessName: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
+          </div>
+
+          <div className="md:col-span-1 relative">
+            <label className="block text-sm font-medium text-slate-700 mb-1">ประเภท</label>
+            <div className="relative">
+              <select value={formData.establishmentType} onChange={e => setFormData({ ...formData, establishmentType: e.target.value })} className="w-full px-4 py-2 pr-10 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none font-body" required>
+                <option value="" disabled>เลือกประเภท</option>
+                {establishmentTypes.map(type => (<option key={type} value={type}>{type}</option>))}
+              </select>
+              <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          <div className="md:col-span-1 relative">
+            <label className="block text-sm font-medium text-slate-700 mb-1">หมวดธุรกิจ</label>
+            <div className="relative">
+              <select value={formData.businessCategory} onChange={e => setFormData({ ...formData, businessCategory: e.target.value })} className="w-full px-4 py-2 pr-10 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none font-body" required>
+                <option value="" disabled>เลือกหมวดธุรกิจ</option>
+                {businessCategories.map(type => (<option key={type} value={type}>{type}</option>))}
+              </select>
+              <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อผู้ติดต่อ</label>
+            <input type="text" placeholder="ชื่อผู้ติดต่อ" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อเล่น (ไม่บังคับ)</label>
+            <input type="text" placeholder="ชื่อเล่น" value={formData.nickname || ''} onChange={e => setFormData({ ...formData, nickname: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">ตำแหน่ง (ไม่บังคับ)</label>
+            <input type="text" placeholder="เช่น เจ้าของกิจการ, ผู้จัดการ" value={formData.position || ''} onChange={e => setFormData({ ...formData, position: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">เบอร์โทร</label>
+            <input type="text" placeholder="เบอร์โทร" value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Line ID</label>
+            <input type="text" placeholder="Line ID" value={formData.lineId} onChange={e => setFormData({ ...formData, lineId: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Facebook</label>
+            <input type="text" placeholder="Facebook" value={formData.facebook} onChange={e => setFormData({ ...formData, facebook: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">E-mail (ไม่บังคับ)</label>
+            <input type="email" placeholder="example@email.com" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+          </div>
         </div>
-      </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm p-8">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1 font-title">ชื่อสถานประกอบการ (ทางการ)</label>
-              <input type="text" placeholder="ชื่อสถานประกอบการ" value={formData.businessName} onChange={e => setFormData({ ...formData, businessName: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
-            </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">ที่อยู่</label>
+          <textarea placeholder="ที่อยู่" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors h-24 font-body" />
+        </div>
 
-            <div className="md:col-span-1 relative">
-              <label className="block text-sm font-medium text-slate-700 mb-1">ประเภท</label>
-              <div className="relative">
-                <select value={formData.establishmentType} onChange={e => setFormData({ ...formData, establishmentType: e.target.value })} className="w-full px-4 py-2 pr-10 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none font-body" required>
-                  <option value="" disabled>เลือกประเภท</option>
-                  {establishmentTypes.map(type => (<option key={type} value={type}>{type}</option>))}
-                </select>
-                <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
+        <div className="flex justify-end pt-4 gap-3">
+          <button type="button" onClick={handleBackToList} className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-lg font-semibold hover:bg-slate-200 transition-colors">ยกเลิก</button>
+          <button type="submit" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-colors shadow-md">{editingEntrepreneur ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}</button>
+        </div>
+      </form>
+    </Modal>
+  );
 
-            <div className="md:col-span-1 relative">
-              <label className="block text-sm font-medium text-slate-700 mb-1">หมวดธุรกิจ</label>
-              <div className="relative">
-                <select value={formData.businessCategory} onChange={e => setFormData({ ...formData, businessCategory: e.target.value })} className="w-full px-4 py-2 pr-10 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors appearance-none font-body" required>
-                  <option value="" disabled>เลือกหมวดธุรกิจ</option>
-                  {businessCategories.map(type => (<option key={type} value={type}>{type}</option>))}
-                </select>
-                <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
-
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อผู้ติดต่อ</label>
-              <input type="text" placeholder="ชื่อผู้ติดต่อ" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" required />
-            </div>
-
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อเล่น (ไม่บังคับ)</label>
-              <input type="text" placeholder="ชื่อเล่น" value={formData.nickname || ''} onChange={e => setFormData({ ...formData, nickname: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-            </div>
-
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-1">ตำแหน่ง (ไม่บังคับ)</label>
-              <input type="text" placeholder="เช่น เจ้าของกิจการ, ผู้จัดการ" value={formData.position || ''} onChange={e => setFormData({ ...formData, position: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-            </div>
-
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-1">เบอร์โทร</label>
-              <input type="text" placeholder="เบอร์โทร" value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-            </div>
-
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Line ID</label>
-              <input type="text" placeholder="Line ID" value={formData.lineId} onChange={e => setFormData({ ...formData, lineId: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-            </div>
-
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Facebook</label>
-              <input type="text" placeholder="Facebook" value={formData.facebook} onChange={e => setFormData({ ...formData, facebook: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-            </div>
-
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-1">E-mail (ไม่บังคับ)</label>
-              <input type="email" placeholder="example@email.com" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">ที่อยู่</label>
-            <textarea placeholder="ที่อยู่" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors h-24 font-body" />
-          </div>
-
-          <div className="flex justify-end pt-4 gap-3">
-            <button type="button" onClick={handleBackToList} className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-lg font-semibold hover:bg-slate-200 transition-colors">ยกเลิก</button>
-            <button type="submit" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-colors shadow-md">{editingEntrepreneur ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  ) : null;
 
   // View: Details
   const detailsView = viewingEntrepreneur ? (
-    <div className="max-w-4xl mx-auto animate-fade-in">
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={handleBackToList}
-          className="mr-4 p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
-        >
-          <ArrowLeftIcon className="w-6 h-6" />
-        </button>
-        <div className="flex items-center gap-3">
-          <BriefcaseIcon className="w-8 h-8 text-emerald-600" />
-          <h2 className="text-3xl font-medium font-title text-slate-900">{viewingEntrepreneur.businessName}</h2>
+    <Modal
+      isOpen={!!viewingEntrepreneur}
+      onClose={handleBackToList}
+      title={viewingEntrepreneur.businessName}
+      icon={<BriefcaseIcon className="w-7 h-7 text-emerald-600" />}
+      maxWidth="max-w-4xl"
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 font-body">
+        <div>
+          <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ประเภทสถานประกอบการ</label>
+          <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.establishmentType}</p>
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">หมวดธุรกิจ</label>
+          <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.businessCategory}</p>
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ผู้ติดต่อ</label>
+          <p className="text-lg font-medium text-slate-900 mt-1">
+            {viewingEntrepreneur.name}
+            {viewingEntrepreneur.nickname && <span className="text-slate-500 text-base font-normal"> ({viewingEntrepreneur.nickname})</span>}
+          </p>
+          {viewingEntrepreneur.position && <p className="text-sm text-slate-500 mt-0.5">{viewingEntrepreneur.position}</p>}
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">เบอร์โทร</label>
+          <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.contact || '-'}</p>
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Line ID</label>
+          <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.lineId || '-'}</p>
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Facebook</label>
+          <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.facebook || '-'}</p>
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">E-mail</label>
+          <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.email || '-'}</p>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-8 space-y-6 font-body">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ประเภทสถานประกอบการ</label>
-            <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.establishmentType}</p>
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">หมวดธุรกิจ</label>
-            <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.businessCategory}</p>
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ผู้ติดต่อ</label>
-            <p className="text-lg font-medium text-slate-900 mt-1">
-              {viewingEntrepreneur.name}
-              {viewingEntrepreneur.nickname && <span className="text-slate-500 text-base font-normal"> ({viewingEntrepreneur.nickname})</span>}
-            </p>
-            {viewingEntrepreneur.position && <p className="text-sm text-slate-500 mt-0.5">{viewingEntrepreneur.position}</p>}
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">เบอร์โทร</label>
-            <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.contact || '-'}</p>
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Line ID</label>
-            <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.lineId || '-'}</p>
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Facebook</label>
-            <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.facebook || '-'}</p>
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">E-mail</label>
-            <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.email || '-'}</p>
-          </div>
+      {viewingEntrepreneur.address && (
+        <div className="border-t border-slate-200 pt-4 mt-4">
+          <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ที่อยู่</label>
+          <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.address}</p>
         </div>
-
-        {viewingEntrepreneur.address && (
-          <div className="border-t border-slate-200 pt-6">
-            <label className="text-sm font-semibold text-slate-500 uppercase tracking-wide">ที่อยู่</label>
-            <p className="text-lg font-medium text-slate-900 mt-1">{viewingEntrepreneur.address}</p>
-          </div>
-        )}
-      </div>
-    </div>
+      )}
+    </Modal>
   ) : null;
 
   // View: List
@@ -550,21 +533,13 @@ const EntrepreneurView: React.FC = () => { // Removed props
   );
 
   return (
-    <div className="w-full space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200">
-            <BuildingOffice2Icon className="w-8 h-8 text-blue-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold font-title text-slate-900">บัญชีผู้ประกอบการ</h1>
-            <p className="text-slate-500 font-body text-sm">จัดการข้อมูลผู้ประกอบการและเครือข่ายธุรกิจ</p>
-          </div>
-        </div>
+    <>
+      <div className="w-full space-y-6 animate-fade-in">
+        {listView}
       </div>
-
-      {isFormOpen ? formView : viewingEntrepreneur ? detailsView : listView}
-    </div>
+      {formView}
+      {detailsView}
+    </>
   );
 };
 
