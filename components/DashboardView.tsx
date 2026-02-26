@@ -404,7 +404,7 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
                 {filteredProjects.length > 0 ? (
                     <>
                         {displayMode === 'card' ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                                 {paginatedProjects.map(project => (
                                     <div key={project.id} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group flex flex-col">
                                         <div className="p-6 relative z-10 flex flex-col h-full">
@@ -455,7 +455,7 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
                                     <table className="min-w-full divide-y divide-slate-200 mobile-card-table">
                                         <thead className="bg-slate-50">
                                             <tr>
-                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title w-1/2">ชื่อโครงการ</th>
+                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title">ชื่อโครงการ</th>
                                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title whitespace-nowrap">สถานะ</th>
                                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider font-title whitespace-nowrap">ผู้ประกอบการ</th>
                                                 <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider font-title whitespace-nowrap">การจัดการ</th>
@@ -469,9 +469,9 @@ const DashboardView: React.FC<DashboardViewProps> = () => {
                                                     onClick={() => setSelectedProject(project)}
                                                 >
                                                     <td data-label="ชื่อโครงการ" className="px-6 py-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <BriefcaseIcon className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                                                            <span className="text-sm font-medium text-slate-900">{project.name}</span>
+                                                        <div className="flex items-start gap-2 max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl">
+                                                            <BriefcaseIcon className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                                                            <span className="text-sm font-medium text-slate-900 break-words line-clamp-3 md:line-clamp-none">{project.name}</span>
                                                         </div>
                                                     </td>
                                                     <td data-label="สถานะ" className="px-6 py-4 whitespace-nowrap">

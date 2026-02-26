@@ -737,8 +737,8 @@ const ProjectView: React.FC = () => { // Removed props
                   <tbody className="bg-white divide-y divide-slate-200">
                     {paginatedProjects.map((proj) => (
                       <tr key={proj.id} onClick={() => setSelectedProject(proj)} className="hover:bg-slate-50 transition-colors cursor-pointer">
-                        <td data-label="ชื่อโครงการ" className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-slate-900" title={proj.name}>{proj.name.length > 30 ? proj.name.substring(0, 30) + '...' : proj.name}</div>
+                        <td data-label="ชื่อโครงการ" className="px-6 py-4">
+                          <div className="text-sm font-medium text-slate-900 break-words line-clamp-3 md:line-clamp-none max-w-sm md:max-w-md lg:max-w-lg" title={proj.name}>{proj.name}</div>
                         </td>
                         <td data-label="ปีงบประมาณ" className="px-6 py-4 whitespace-nowrap">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
@@ -825,7 +825,7 @@ const ProjectView: React.FC = () => { // Removed props
   );
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="w-full animate-fade-in">
       {isFormOpen && formView}
       {selectedProject && detailsView}
       {!isFormOpen && !selectedProject && listView}

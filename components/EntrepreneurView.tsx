@@ -550,7 +550,7 @@ const EntrepreneurView: React.FC = () => { // Removed props
   );
 
   return (
-    <div className="p-6 min-h-screen bg-slate-50">
+    <div className="w-full space-y-6 animate-fade-in">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200">

@@ -88,7 +88,7 @@ const BizProjectView: React.FC = () => {
     // Detail view
     if (selectedProject) {
         return (
-            <div className="p-6 space-y-6">
+            <div className="w-full space-y-6 animate-fade-in">
                 <div className="flex items-center gap-4">
                     <button onClick={() => setSelectedProject(null)} className="p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500">
                         <ArrowLeftIcon className="w-6 h-6" />
@@ -188,7 +188,7 @@ const BizProjectView: React.FC = () => {
 
     // List view
     return (
-        <div className="p-6 space-y-6 min-h-screen bg-slate-50">
+        <div className="w-full space-y-6 animate-fade-in">
             {/* Filter Bar */}
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
                 <div className="w-full md:w-auto md:flex-1 relative">
@@ -294,7 +294,7 @@ const BizProjectView: React.FC = () => {
             {filteredProjects.length > 0 ? (
                 <>
                     {displayMode === 'card' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {paginatedProjects.map(proj => (
                                 <div key={proj.id} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group flex flex-col">
                                     <div className="p-6 relative z-10 flex flex-col h-full">
@@ -370,7 +370,7 @@ const BizProjectView: React.FC = () => {
                                         {paginatedProjects.map((proj) => (
                                             <tr key={proj.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setSelectedProject(proj)}>
                                                 <td className="px-6 py-4">
-                                                    <div className="text-sm font-medium text-slate-900">{proj.name}</div>
+                                                    <div className="text-sm font-medium text-slate-900 break-words line-clamp-3 md:line-clamp-none max-w-sm md:max-w-md lg:max-w-lg" title={proj.name}>{proj.name}</div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm text-slate-500">{proj.fiscalYear || '-'}</div>

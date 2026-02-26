@@ -527,7 +527,7 @@ const CourseView: React.FC = () => { // Removed props
   );
 
   return (
-    <div className="container mx-auto">
+    <div className="w-full animate-fade-in">
       {isFormOpen && formView}
       {viewingCourse && detailsView}
       {!isFormOpen && !viewingCourse && listView}

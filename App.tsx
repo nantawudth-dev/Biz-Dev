@@ -167,7 +167,7 @@ const MainApp = () => {
         />
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-4 md:p-6 pb-20 scrollbar-hide">
-          <div className="max-w-7xl mx-auto space-y-6">
+          <div className="max-w-[1920px] w-full mx-auto space-y-6 transition-all duration-300">
             {activeView === ViewType.Dashboard && (
               <DashboardView />
             )}

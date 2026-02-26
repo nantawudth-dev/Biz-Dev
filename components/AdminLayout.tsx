@@ -201,8 +201,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
                         </div>
                     </div>
                 </header>
-                <div className="p-4 sm:p-6 md:p-8">
-                    {renderView()}
+                <div className="max-w-[1920px] w-full mx-auto">
+                    <div className={`p-4 sm:p-6 ${activeView === ViewType.Dashboard ? 'md:py-8 md:px-0' : 'md:p-8'}`}>
+                        {renderView()}
+                    </div>
                 </div>
             </main>
             <Modal

@@ -457,7 +457,7 @@ const ConsultantView: React.FC = () => { // Removed props
   );
 
   return (
-    <div className="container mx-auto">
+    <div className="w-full animate-fade-in">
       {isFormOpen && formView}
       {viewingConsultant && detailsView}
       {!isFormOpen && !viewingConsultant && listView}
