@@ -1,0 +1,6 @@
+/* Print styles - minimal since PDF export uses a new window */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

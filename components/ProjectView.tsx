@@ -1,7 +1,8 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Project, Entrepreneur, ProjectCategory, Role } from '../types';
-import { PlusIcon, Squares2X2Icon, ListBulletIcon, FunnelIcon, MagnifyingGlassIcon, ChevronDownIcon, ArrowLeftIcon, PencilIcon, TrashIcon, EyeIcon, CalendarIcon, ClipboardDocumentCheckIcon, DocumentTextIcon, BriefcaseIcon, EllipsisVerticalIcon, BuildingOffice2Icon, CurrencyDollarIcon, TagIcon, ChartBarIcon, CheckCircleIcon, UserCircleIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
+import { PlusIcon, Squares2X2Icon, ListBulletIcon, FunnelIcon, MagnifyingGlassIcon, ChevronDownIcon, ArrowLeftIcon, PencilIcon, TrashIcon, EyeIcon, CalendarIcon, ClipboardDocumentCheckIcon, DocumentTextIcon, BriefcaseIcon, EllipsisVerticalIcon, BuildingOffice2Icon, CurrencyDollarIcon, TagIcon, ChartBarIcon, CheckCircleIcon, UserCircleIcon, BookOpenIcon, ExclamationTriangleIcon, DocumentArrowDownIcon, PrinterIcon, TableCellsIcon } from './icons';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { dataService } from '../services/dataService';
@@ -52,6 +53,13 @@ const ProjectView: React.FC = () => { // Removed props
 
   const [entrepreneurSearch, setEntrepreneurSearch] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Export PDF states
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportStatus, setExportStatus] = useState<'All' | Project['status']>('All');
+  const [exportCategory, setExportCategory] = useState<'All' | ProjectCategory>('All');
+  const [exportYear, setExportYear] = useState<string>('All');
+  const [exportSearch, setExportSearch] = useState('');
 
   const { data, fetchData, invalidateCache } = useData();
   const { showNotification } = useNotification();
@@ -227,6 +235,84 @@ const ProjectView: React.FC = () => { // Removed props
   };
 
   const [selectedYear, setSelectedYear] = useState<string>('All');
+
+  // Export PDF handlers
+  const handleOpenExportModal = () => {
+    setExportStatus('All');
+    setExportCategory('All');
+    setExportYear('All');
+    setExportSearch('');
+    setIsExportModalOpen(true);
+  };
+
+  const exportFilteredProjects = projects.filter(proj => {
+    const statusMatch = exportStatus === 'All' || proj.status === exportStatus;
+    const categoryMatch = exportCategory === 'All' || proj.category === exportCategory;
+    const yearMatch = exportYear === 'All' || proj.fiscalYear === exportYear;
+    const searchMatch = proj.name.toLowerCase().includes(exportSearch.toLowerCase()) ||
+      proj.entrepreneur.toLowerCase().includes(exportSearch.toLowerCase());
+    return statusMatch && categoryMatch && yearMatch && searchMatch;
+  });
+
+  const handlePrintExport = () => {
+    const printArea = document.querySelector('.print-area');
+    if (!printArea) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+      <head>
+        <title>รายงานข้อมูลโครงการ</title>
+        <style>
+          body { margin: 10mm; font-family: 'Segoe UI', Tahoma, sans-serif; color: #1e293b; }
+          h2 { font-size: 16px; margin-bottom: 2px; }
+          .print-meta { font-size: 10px; color: #666; margin-bottom: 10px; }
+          table { width: 100%; border-collapse: collapse; font-size: 10px; }
+          th, td { border: 1px solid #555; padding: 4px 6px; text-align: left; }
+          th { background: #e2e8f0; font-weight: bold; }
+          thead { display: table-header-group; }
+          tfoot { display: table-footer-group; }
+          tr { page-break-inside: avoid; }
+          tr:nth-child(even) { background: #f8fafc; }
+          @page { size: A4 landscape; margin: 8mm; }
+        </style>
+      </head>
+      <body>${printArea.innerHTML}</body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+  };
+
+  const handleExportExcel = () => {
+    const headers = ['#', 'ชื่อโครงการ', 'หมวดหมู่', 'สถานะ', 'ผู้ประกอบการ', 'ผู้รับผิดชอบ', 'ผู้ร่วมดำเนินการ', 'ปีงบประมาณ', 'งบประมาณ (บาท)', 'รายละเอียด'];
+    const rows = exportFilteredProjects.map((proj, idx) => [
+      idx + 1,
+      proj.name,
+      PROJECT_CATEGORIES.find(c => c.key === proj.category)?.label || proj.category,
+      statusLabel(proj.status),
+      proj.entrepreneur || '',
+      proj.projectLeader || '',
+      proj.coProjectLeader || '',
+      proj.fiscalYear || '',
+      proj.budget || 0,
+      proj.description || '',
+    ]);
+    const csvContent = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    link.download = `project_${dateStr}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const filteredProjects = projects.filter(proj => {
     const statusMatch = selectedStatus === 'All' || proj.status === selectedStatus;
@@ -696,12 +782,12 @@ const ProjectView: React.FC = () => { // Removed props
         </div>
       )}
 
-      {/* Add Project Banner (admin/officer only) */}
+      {/* Quick Menu Cards (admin/officer only) */}
       {(userRole === 'admin' || userRole === 'officer') && (
-        <div className="mt-8">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             onClick={handleOpenAdd}
-            className="w-full group relative overflow-hidden bg-gradient-to-r from-blue-50 via-cyan-50 to-sky-50 hover:from-blue-100 hover:via-cyan-100 hover:to-sky-100 border-2 border-blue-200/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] p-6 text-left"
+            className="md:col-span-2 w-full group relative overflow-hidden bg-gradient-to-r from-blue-50 via-cyan-50 to-sky-50 hover:from-blue-100 hover:via-cyan-100 hover:to-sky-100 border-2 border-blue-200/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] p-6 text-left"
           >
             <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity">
               <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1170&auto=format&fit=crop" alt="" className="w-full h-full object-cover" />
@@ -718,9 +804,193 @@ const ProjectView: React.FC = () => { // Removed props
               <PlusIcon className="w-6 h-6 text-blue-600 opacity-80 group-hover:opacity-100 transition-opacity" />
             </div>
           </button>
+
+          <button
+            onClick={handleOpenExportModal}
+            className="md:col-span-1 w-full group relative overflow-hidden bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50 hover:from-orange-100 hover:via-amber-100 hover:to-yellow-100 border-2 border-orange-200/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] p-6 text-left"
+          >
+            <div className="absolute inset-0 opacity-20 group-hover:opacity-25 transition-opacity">
+              <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&auto=format&fit=crop" alt="" className="w-full h-full object-cover" />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-400/20 via-amber-400/20 to-yellow-400/20"></div>
+            <div className="relative flex items-center gap-4">
+              <div className="bg-gradient-to-br from-orange-500 to-amber-500 p-4 rounded-xl group-hover:from-orange-600 group-hover:to-amber-600 transition-all shadow-md">
+                <DocumentArrowDownIcon className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-left flex-1">
+                <h3 className="text-xl font-bold mb-1 text-slate-800">ส่งออก PDF</h3>
+                <p className="text-slate-600 text-sm font-normal">ส่งออกข้อมูลโครงการเป็นไฟล์ PDF</p>
+              </div>
+              <DocumentArrowDownIcon className="w-6 h-6 text-orange-600 opacity-80 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </button>
         </div>
       )}
     </div>
+  );
+
+  // Export PDF Modal
+  const exportModal = (
+    <Modal
+      isOpen={isExportModalOpen}
+      onClose={() => setIsExportModalOpen(false)}
+      title="ส่งออกข้อมูลโครงการ (PDF)"
+      icon={<DocumentArrowDownIcon className="w-7 h-7 text-orange-600" />}
+      maxWidth="max-w-6xl"
+    >
+      <div className="space-y-4">
+        {/* Filters */}
+        <div className="flex flex-col md:flex-row gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200 no-print">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              placeholder="ค้นหาชื่อโครงการหรือผู้ประกอบการ..."
+              value={exportSearch}
+              onChange={e => setExportSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+            <MagnifyingGlassIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          </div>
+          <div className="relative">
+            <select
+              value={exportYear}
+              onChange={e => setExportYear(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 appearance-none font-semibold text-sm"
+            >
+              <option value="All">ทุกปีงบประมาณ</option>
+              {fiscalYears.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+            <CalendarIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={exportStatus}
+              onChange={e => setExportStatus(e.target.value as any)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 appearance-none font-semibold text-sm"
+            >
+              <option value="All">ทุกสถานะ</option>
+              <option value="Planned">แผนงาน</option>
+              <option value="In Progress">กำลังดำเนินการ</option>
+              <option value="Completed">ดำเนินการเสร็จสิ้น</option>
+            </select>
+            <FunnelIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={exportCategory}
+              onChange={e => setExportCategory(e.target.value as any)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 appearance-none font-semibold text-sm"
+            >
+              <option value="All">ทุกหมวดหมู่</option>
+              {PROJECT_CATEGORIES.map(cat => (
+                <option key={cat.key} value={cat.key}>{cat.label}</option>
+              ))}
+            </select>
+            <FunnelIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div className="flex items-center justify-between px-1 no-print">
+          <p className="text-sm text-slate-500">
+            พบข้อมูล <span className="font-bold text-slate-800">{exportFilteredProjects.length}</span> โครงการ
+            {exportYear !== 'All' && <span className="text-orange-600"> • ปี: {exportYear}</span>}
+            {exportStatus !== 'All' && <span className="text-orange-600"> • สถานะ: {statusLabel(exportStatus)}</span>}
+            {exportCategory !== 'All' && <span className="text-orange-600"> • หมวด: {PROJECT_CATEGORIES.find(c => c.key === exportCategory)?.label}</span>}
+          </p>
+        </div>
+
+        {/* Print Area */}
+        <div className="print-area">
+          <h2 className="text-lg font-bold text-slate-800 font-title">รายงานข้อมูลโครงการ</h2>
+          <p className="print-meta text-sm text-slate-500 mb-3">
+            วันที่ออกรายงาน: {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+            {exportYear !== 'All' && ` | ปีงบประมาณ: ${exportYear}`}
+            {exportStatus !== 'All' && ` | สถานะ: ${statusLabel(exportStatus)}`}
+            {exportCategory !== 'All' && ` | หมวด: ${PROJECT_CATEGORIES.find(c => c.key === exportCategory)?.label}`}
+            {exportSearch && ` | คำค้นหา: ${exportSearch}`}
+            {` | จำนวน ${exportFilteredProjects.length} โครงการ`}
+          </p>
+
+          {/* Preview Table */}
+          <div className="overflow-x-auto border border-slate-200 rounded-lg">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-100">
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider font-title w-10">#</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider font-title">ชื่อโครงการ</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider font-title">หมวดหมู่</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider font-title">สถานะ</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider font-title">ผู้ประกอบการ</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider font-title">ผู้รับผิดชอบ</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider font-title">ปีงบประมาณ</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider font-title">งบประมาณ (บาท)</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-slate-200">
+                {exportFilteredProjects.length > 0 ? exportFilteredProjects.map((proj, idx) => (
+                  <tr key={proj.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                    <td className="px-3 py-2 text-slate-500">{idx + 1}</td>
+                    <td className="px-3 py-2 font-medium text-slate-900">{proj.name}</td>
+                    <td className="px-3 py-2 text-slate-600">{PROJECT_CATEGORIES.find(c => c.key === proj.category)?.label || proj.category}</td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusClass(proj.status)}`}>{statusLabel(proj.status)}</span>
+                    </td>
+                    <td className="px-3 py-2 text-slate-600">{proj.entrepreneur || '-'}</td>
+                    <td className="px-3 py-2 text-slate-700">
+                      {proj.projectLeader}
+                      {proj.coProjectLeader && <span className="block text-xs text-slate-500">ร่วม: {proj.coProjectLeader}</span>}
+                    </td>
+                    <td className="px-3 py-2 text-slate-600">{proj.fiscalYear || '-'}</td>
+                    <td className="px-3 py-2 text-right text-slate-700">{proj.budget ? proj.budget.toLocaleString() : '0'}</td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={8} className="px-3 py-8 text-center text-slate-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td>
+                  </tr>
+                )}
+              </tbody>
+              {exportFilteredProjects.length > 0 && (
+                <tfoot className="bg-slate-100">
+                  <tr>
+                    <td colSpan={7} className="px-3 py-2 text-right font-semibold text-slate-700">รวมงบประมาณ</td>
+                    <td className="px-3 py-2 text-right font-bold text-slate-900">{exportFilteredProjects.reduce((sum, p) => sum + (p.budget || 0), 0).toLocaleString()}</td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end pt-2 gap-3 no-print">
+          <button
+            onClick={() => setIsExportModalOpen(false)}
+            className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-lg font-semibold hover:bg-slate-200 transition-colors"
+          >
+            ปิด
+          </button>
+          <button
+            onClick={handleExportExcel}
+            disabled={exportFilteredProjects.length === 0}
+            className="bg-gradient-to-r from-green-600 to-emerald-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-colors shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <TableCellsIcon className="w-5 h-5" />
+            ส่งออก Excel
+          </button>
+          <button
+            onClick={handlePrintExport}
+            disabled={exportFilteredProjects.length === 0}
+            className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition-colors shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <PrinterIcon className="w-5 h-5" />
+            ส่งออก PDF
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 
   return (
@@ -728,6 +998,7 @@ const ProjectView: React.FC = () => { // Removed props
       {isFormOpen && formView}
       {!isFormOpen && listView}
       {detailsView}
+      {exportModal}
 
       {/* Persistence Modals - Always Rendered */}
       {reportingProject && (
