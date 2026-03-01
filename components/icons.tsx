@@ -133,12 +133,7 @@ export const PhoneIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-// Replaced with Heroicons: ChatBubbleLeftEllipsisIcon
-export const ChatBubbleLeftIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.917-.464-1.255a5.973 5.973 0 01-1.636-3.854A5.973 5.973 0 017.48 5.97a5.973 5.973 0 013.473-1.636 5.973 5.973 0 013.854 1.636 5.973 5.973 0 011.636 3.854 5.973 5.973 0 01-1.636 3.473c-.331.338-.554.798-.464 1.255.09.456.333.894.978 2.025a4.48 4.48 0 00-.474.065 5.969 5.969 0 01-5.41-5.025A9.764 9.764 0 0112 3.375c4.97 0 9 3.694 9 8.25z" />
-  </svg>
-);
+
 
 // Replaced with Heroicons: GlobeAltIcon
 export const GlobeAltIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -298,13 +293,7 @@ export const TagIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-// Added Heroicons: DocumentArrowUpIcon for File Upload
-export const DocumentArrowUpIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15.75v-6m0 0l-2.25 2.25M12 9.75l2.25 2.25" />
-  </svg>
-);
+
 
 // Added Heroicons: EnvelopeIcon for Email
 export const EnvelopeIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -325,12 +314,7 @@ export const ArrowRightOnRectangleIcon: React.FC<{ className?: string }> = ({ cl
   </svg>
 );
 
-// Added Heroicons: LockClosedIcon for Access Denied Modal
-export const LockClosedIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-  </svg>
-);
+
 
 // Added Heroicons: AcademicCapIcon for Courses
 export const AcademicCapIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -357,5 +341,12 @@ export const PrinterIcon: React.FC<{ className?: string }> = ({ className }) => 
 export const TableCellsIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M10.875 12c-.621 0-1.125.504-1.125 1.125M12 12c.621 0 1.125.504 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 0v1.5c0 .621-.504 1.125-1.125 1.125M12 15.375c0 .621.504 1.125 1.125 1.125" />
+  </svg>
+);
+
+// Added Heroicons: ClockIcon for Pending Approval
+export const ClockIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
   </svg>
 );

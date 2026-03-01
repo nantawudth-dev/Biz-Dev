@@ -9,6 +9,7 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Modal from './components/Modal';
 import AccessDeniedModal from './components/AccessDeniedModal';
+import RegisterPage from './components/RegisterPage';
 import { ExclamationTriangleIcon, CheckCircleIcon } from './components/icons';
 
 import DashboardView from './components/DashboardView';
@@ -22,7 +23,7 @@ import SettingsView from './components/SettingsView';
 import AIAnalysisView from './components/AIAnalysisView';
 
 const MainApp = () => {
-  const { user, isLoading: authLoading, logout, isAdmin, isOfficer, isAccessDenied } = useAuth();
+  const { user, isLoading: authLoading, logout, isAdmin, isOfficer, isAccessDenied, isAwaitingRegistration, completeRegistration } = useAuth();
   const { showNotification } = useNotification();
 
   // View management state
@@ -136,6 +137,10 @@ const MainApp = () => {
 
   if (!user) {
     return <LoginPage />;
+  }
+
+  if (isAwaitingRegistration && user.email) {
+    return <RegisterPage email={user.email} onSubmit={completeRegistration} />;
   }
 
   if (isAccessDenied) {

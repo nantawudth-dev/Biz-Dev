@@ -8,10 +8,11 @@ interface AuthContextType {
     session: Session | null;
     isLoading: boolean;
     loginWithGoogle: () => Promise<void>;
-    logout: () => Promise<void>;
     isAdmin: boolean;
     isOfficer: boolean;
     isAccessDenied: boolean;
+    isAwaitingRegistration: boolean;
+    completeRegistration: (fullName: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +25,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isAdmin, setIsAdmin] = useState(false);
     const [isOfficer, setIsOfficer] = useState(false);
     const [isAccessDenied, setAccessDenied] = useState(false);
+    const [isAwaitingRegistration, setIsAwaitingRegistration] = useState(false);
 
     // Helper: Check profile and set role state
     const checkProfile = async (authUser: User) => {
@@ -33,7 +35,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             let { data: profile } = await supabase
                 .from('profiles')
-                .select('role')
+                .select('role, is_active')
                 .eq('id', userId)
                 .single();
 
@@ -58,21 +60,63 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         await supabase.from('profiles').insert([{ ...preProfile, id: userId }]);
                     }
 
-                    profile = { role: preProfile.role };
+                    profile = { role: preProfile.role, is_active: preProfile.is_active };
                 }
             }
 
             if (!profile) {
+                console.log('[Auth] Profile not found. Awaiting user registration...');
+                setIsAwaitingRegistration(true);
                 setAccessDenied(true);
                 setIsAdmin(false);
                 setIsOfficer(false);
+            } else if (!profile.is_active) {
+                console.log('[Auth] Profile is inactive. Access denied.');
+                setAccessDenied(true);
+                setIsAdmin(false);
+                setIsOfficer(false);
+                setIsAwaitingRegistration(false);
             } else {
                 setAccessDenied(false);
                 setIsAdmin(profile.role === 'admin');
                 setIsOfficer(profile.role === 'officer' || profile.role === 'admin');
+                setIsAwaitingRegistration(false);
             }
         } catch (error) {
             console.error('[Auth] Profile check failed:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const completeRegistration = async (fullName: string) => {
+        if (!user) return;
+
+        setIsLoading(true);
+        try {
+            const newProfile = {
+                id: user.id,
+                username: fullName,
+                email: user.email,
+                role: 'user',
+                is_active: false // Require admin approval
+            };
+
+            const { error: insertError } = await supabase
+                .from('profiles')
+                .insert([newProfile]);
+
+            if (insertError) {
+                console.error('[Auth] Failed to create profile during registration:', insertError);
+                throw insertError;
+            }
+
+            console.log('[Auth] Registration complete. Status: Inactive (Pending).');
+            setIsAwaitingRegistration(false);
+            setAccessDenied(true); // Still denied until approved
+        } catch (error) {
+            console.error('Registration error:', error);
+            throw error;
         } finally {
             setIsLoading(false);
         }
@@ -106,6 +150,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setIsAdmin(false);
                 setIsOfficer(false);
                 setAccessDenied(false);
+                setIsAwaitingRegistration(false);
                 setIsLoading(false);
             }
         });
@@ -157,7 +202,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         logout,
         isAdmin,
         isOfficer,
-        isAccessDenied
+        isAccessDenied,
+        isAwaitingRegistration,
+        completeRegistration
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
